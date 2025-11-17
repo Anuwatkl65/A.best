@@ -1,0 +1,39 @@
+{% extends "production/base.html" %}
+{% block title %}QR Code Export{% endblock %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-4 text-gray-800">QR Code Export</h2>
+
+<div class="bg-white rounded-xl p-4 shadow space-y-4">
+  <div class="flex gap-2 items-center">
+    <input id="qr-lot-no-input" list="qr-lot-no-list" placeholder="พิมพ์หรือเลือก Lot No."
+          class="w-full md:w-96 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"/>
+    <datalist id="qr-lot-no-list"></datalist>
+    <button id="export-qr-btn" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500">สร้าง QR</button>
+  </div>
+  <canvas id="qr-canvas" class="border rounded p-2"></canvas>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+<script>
+  const SCRIPT_URL="/api/";
+  const input = document.getElementById('qr-lot-no-input');
+  const list  = document.getElementById('qr-lot-no-list');
+
+  async function loadLots(){
+    const res = await fetch(SCRIPT_URL,{method:'POST',body:new URLSearchParams({action:'getData'})});
+    const j = await res.json();
+    const rows = (j.data?.dashboardData) || j.data || [];
+    list.innerHTML = '';
+    rows.forEach(x=>{
+      const opt=document.createElement('option');
+      opt.value = x.lot_no || x.lotNo;
+      if(opt.value) list.appendChild(opt);
+    });
+  }
+  document.getElementById('export-qr-btn').onclick = ()=>{
+    const lot = input.value.trim(); if(!lot){ alert('กรุณาใส่ Lot No.'); return; }
+    new QRious({ element: document.getElementById('qr-canvas'), value: lot, size: 200, level:'H' });
+  };
+  loadLots();
+</script>
+{% endblock %}

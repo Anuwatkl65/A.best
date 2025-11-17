@@ -1,0 +1,43 @@
+{% extends "production/base.html" %}
+{% block title %}User Control{% endblock %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-4 text-gray-800">User Control</h2>
+
+<div class="bg-white rounded-xl p-4 shadow space-y-3">
+  <p class="text-gray-600">หน้าตัวอย่างสำหรับแอดมินดูผู้ใช้งานออนไลน์</p>
+  <div class="flex gap-2">
+    <button id="refresh-user-list-btn" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500">
+      รีเฟรชรายชื่อ
+    </button>
+  </div>
+  <div id="user-list-container" class="space-y-2"></div>
+</div>
+
+<script>
+  const SCRIPT_URL="/api/";
+  async function loadUsers(){
+    const res = await fetch(SCRIPT_URL,{method:'POST',body:new URLSearchParams({action:'getActiveUsers'})});
+    const j = await res.json();
+    const users = j.users || j.data || [];
+    const box = document.getElementById('user-list-container');
+    if(!users.length){ box.innerHTML = '<p class="text-gray-500">ไม่มีผู้ใช้ออนไลน์</p>'; return; }
+    box.innerHTML = users.map(u=>`
+      <div class="bg-white border rounded-lg p-3 flex justify-between items-center">
+        <div>
+          <div class="font-semibold">${u.name||u.username}</div>
+          <div class="text-xs text-gray-500">${u.username||''}</div>
+        </div>
+        <button data-username="${u.username}" class="kick-btn px-3 py-1 text-sm rounded bg-red-100 text-red-700 hover:bg-red-200">เตะออก</button>
+      </div>`).join('');
+  }
+  document.getElementById('refresh-user-list-btn').onclick = loadUsers;
+  document.getElementById('user-list-container').addEventListener('click', async (e)=>{
+    const btn = e.target.closest('.kick-btn'); if(!btn) return;
+    const username = btn.dataset.username;
+    if(!confirm(`เตะ ${username} ออกจากระบบ?`)) return;
+    await fetch(SCRIPT_URL,{method:'POST',body:new URLSearchParams({action:'kickUser',username})});
+    loadUsers();
+  });
+  loadUsers();
+</script>
+{% endblock %}

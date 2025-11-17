@@ -1,0 +1,100 @@
+{% load static %}
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>{% block title %}Production Tracker{% endblock %}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { abest: { 500:'#7c3aed',600:'#6d28d9',700:'#5b21b6',pink:'#ec4899' } }
+        }
+      }
+    }
+  </script>
+
+  <!-- Fallback ถ้า CDN ไม่โหลด -->
+  <script>
+    addEventListener('load', function(){
+      var t=document.createElement('div'); t.className='hidden md:block';
+      document.body.appendChild(t);
+      var ok=getComputedStyle(t).display==='block';
+      document.body.removeChild(t);
+      if(!ok){
+        var l=document.createElement('link');
+        l.rel='stylesheet'; l.href="{% static 'css/tailwind-fallback.min.css' %}";
+        document.head.appendChild(l);
+        console.warn('Tailwind CDN ไม่โหลด ใช้ fallback css');
+      }
+    });
+  </script>
+
+  <!-- CSS หลักของเรา -->
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-100" style="font-family: system-ui, -apple-system, 'Kanit', sans-serif;">
+  <!-- Header -->
+  <header class="brand-gradient text-white shadow">
+    <div class="max-w-6xl mx-auto px-4 py-3 grid grid-cols-1 md:grid-cols-3 items-center gap-y-3">
+      <!-- ซ้าย -->
+      <div class="md:col-span-1 text-center md:text-left">
+        <h1 class="text-xl md:text-2xl font-bold leading-tight">Production Tracker</h1>
+        <p class="text-[13px] opacity-90 -mt-0.5">ระบบติดตามการผลิต</p>
+      </div>
+
+<div class="pill-group">
+  {% if user.is_authenticated %}
+    <span class="pill">ผู้ใช้: {{ user.username }}</span>
+
+    <form action="{% url 'logout' %}" method="post" class="inline">
+      {% csrf_token %}
+      <button type="submit" class="pill hover:opacity-90">
+        ออกจากระบบ
+      </button>
+    </form>
+  {% else %}
+    <a href="{% url 'login_page' %}" class="pill hover:opacity-90">เข้าสู่ระบบ</a>
+  {% endif %}
+</div>
+
+
+      <!-- ขวา -->
+      <div class="md:col-span-1 text-center md:text-right">
+        <img
+          src="https://www.abest.co.th/wp-content/uploads/2019/10/cropped-abest-favicon.png"
+          class="w-12 h-12 rounded-md inline-block"
+          alt="A.Best Logo" width="48" height="48">
+        <p class="mt-1 text-[11px] leading-tight opacity-90 hidden md:block">
+          A.Best Inter Products<br/>Co., Ltd.
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto p-6">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- JS รวมของโปรเจกต์ (ถ้ามี) -->
+  <script>window.SCRIPT_URL="/api/";</script>
+  <script src="{% static 'js/app.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+  
+<script>
+  window.__DASHBOARD_CONTEXT__ = {
+    department: "{{ department|default:'' }}",
+    view_type: "{{ view_type|default:'' }}",
+  };
+</script>
+
+
+</body>
+</html>

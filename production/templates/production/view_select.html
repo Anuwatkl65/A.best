@@ -1,0 +1,39 @@
+{% extends "production/base.html" %}
+{% block title %}เลือกมุมมอง · Production Tracker{% endblock %}
+
+{% block content %}
+<div class="text-center mb-8">
+<a href="{% url 'department_select' %}?department=Preform"
+   class="inline-flex items-center gap-1 px-4 py-2 rounded-full bg-white text-gray-700 text-sm shadow hover:bg-purple-50">
+   ← กลับไปเลือกแผนก
+</a>
+
+
+   <h2 class="text-2xl md:text-3xl font-extrabold text-gray-800">เลือกมุมมอง</h2>
+   <p class="text-gray-500">แผนก: {{ department_label }}</p>
+</div>
+
+<div class="grid grid-cols-1 gap-4 max-w-3xl mx-auto">
+
+   <a href="{% url 'dashboard' %}?department={{ department }}&view=list"
+      class="block p-4 menu-card text-center">
+      List View
+   </a>
+
+   <a href="{% url 'dashboard' %}?department={{ department }}&view=machine"
+      class="block p-4 menu-card text-center">
+      Machine View
+   </a>
+
+   <a href="{% url 'dashboard' %}?department={{ department }}&view=order"
+      class="block p-4 menu-card text-center">
+      Order View
+   </a>
+
+   <a href="{% url 'dashboard' %}?department={{ department }}&view=productivity"
+      class="block p-4 menu-card text-center">
+         Productivity View
+   </a>
+
+</div>
+{% endblock %}

@@ -1,0 +1,124 @@
+{% extends "production/base.html" %}
+{% block title %}Dashboard: {{ department|default:"Overall" }} · Production Tracker{% endblock %}
+
+{% if view_type == "list" %}
+  {% include "production/partials/dashboard_list.html" %}
+{% elif view_type == "machine" %}
+  {% include "production/partials/dashboard_machine.html" %}
+{% elif view_type == "order" %}
+  {% include "production/partials/dashboard_order.html" %}
+{% elif view_type == "productivity" %}
+  {% include "production/partials/dashboard_productivity.html" %}
+{% endif %}
+
+
+{% block extra_head %}
+  <style>
+    .kpi { border-radius: 14px; background:#fff; box-shadow:0 6px 16px rgba(124,58,237,.10); }
+    .kpi.is-active { outline:2px solid rgba(124,58,237,.6); }
+    .lot-card { border:2px solid rgba(124,58,237,.6); border-radius:14px; }
+  </style>
+{% endblock %}
+
+{% block content %}
+<!-- แถบบาร์บน (Home / ย้อนกลับ / ชื่อหน้า) -->
+<div class="flex items-center justify-between mb-4">
+  <a href="{% url 'home_menu' %}" class="flex items-center gap-2 text-white/90 bg-purple-500/40 hover:bg-purple-500/60 rounded-full px-3 py-1.5">
+    <span class="material-symbols-outlined text-sm">home</span> Home
+  </a>
+  <button type="button" onclick="history.back()" class="bg-white rounded-full px-4 py-1.5 shadow text-gray-700">
+    ← ย้อนกลับ
+  </button>
+</div>
+
+<!-- ชื่อหน้า -->
+<div class="mb-4">
+  <h2 class="text-2xl md:text-3xl font-extrabold text-gray-800">Dashboard: {{ department|default:"Overall" }}</h2>
+  <p class="text-gray-500">List View</p>
+</div>
+
+<!-- แถว KPI (All Types / Order / Sample / Reserved / Extra / Claim) -->
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
+  <div class="kpi p-3 text-center">
+    <div class="text-gray-500 text-sm">All Types</div>
+    <div id="kpi-all" class="text-2xl font-bold">0</div>
+  </div>
+  <div class="kpi p-3 text-center">
+    <div class="text-gray-500 text-sm">Order</div>
+    <div id="kpi-order" class="text-2xl font-bold">0</div>
+  </div>
+  <div class="kpi p-3 text-center">
+    <div class="text-gray-500 text-sm">Sample</div>
+    <div id="kpi-sample" class="text-2xl font-bold">0</div>
+  </div>
+  <div class="kpi p-3 text-center">
+    <div class="text-gray-500 text-sm">Reserved</div>
+    <div id="kpi-reserved" class="text-2xl font-bold">0</div>
+  </div>
+  <div class="kpi p-3 text-center">
+    <div class="text-gray-500 text-sm">Extra</div>
+    <div id="kpi-extra" class="text-2xl font-bold">0</div>
+  </div>
+  <div class="kpi p-3 text-center">
+    <div class="text-gray-500 text-sm">Claim</div>
+    <div id="kpi-claim" class="text-2xl font-bold">0</div>
+  </div>
+</div>
+
+<!-- แถว Summary (ทั้งหมด/รอผลิต/กำลังผลิต/เสร็จแล้ว) -->
+<div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-3 gap-4 mb-4">
+  <div id="summary-total" class="kpi p-6 text-center"></div>
+  <div id="summary-pending" class="kpi p-6 text-center"></div>
+  <div id="summary-inProgress" class="kpi p-6 text-center"></div> 
+  <div id="summary-completed" class="kpi p-6 text-center sm:col-span-3 lg:col-span-3"></div>
+</div>
+
+<!-- แถบค้นหา + ปุ่มรีเฟรช -->
+<div class="flex items-center gap-3 mb-4">
+  <div class="flex-1">
+    <input id="filter-input" type="text" placeholder="🔎 ค้นหา Lot No, Part No, Customer..."
+          class="w-full h-12 rounded-xl border-2 border-purple-300/60 focus:border-purple-500 focus:ring-purple-500 px-4 bg-white shadow-sm">
+  </div>
+  <button id="refresh-dashboard-btn" class="btn">รีเฟรช</button>
+</div>
+
+<!-- รายการ Lot -->
+<div id="dashboard-content" class="grid grid-cols-1 gap-5">
+  <!-- app.js จะมา render การ์ดให้เอง -->
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // ส่ง context ให้ app.js ใช้ filter แผนก + ใช้ view 'list'
+  window.__DASHBOARD_CONTEXT__ = {
+    department: "{{ department|default:'Overall' }}",
+    view_type: "list"
+  };
+
+  // เติม KPI จากข้อมูลที่ได้ (hook หลังโหลดเสร็จ)
+  (function attachKPI(){
+    const _orig = API.getData;
+    API.getData = async function(){
+      const r = await _orig();
+      try{
+        const rows = (r.data?.dashboardData) || r.data || [];
+        const countByType = rows.reduce((acc,x)=>{
+          const key = (x.type||'').toLowerCase();
+          acc.all = (acc.all||0)+1;
+          if(key) acc[key] = (acc[key]||0)+1;
+          return acc;
+        }, {all:0});
+        document.getElementById('kpi-all').textContent = countByType.all||0;
+        document.getElementById('kpi-order').textContent = countByType.order||0;
+        document.getElementById('kpi-sample').textContent = countByType.sample||0;
+        document.getElementById('kpi-reserved').textContent = countByType.reserved||0;
+        document.getElementById('kpi-extra').textContent = countByType.extra||0;
+        document.getElementById('kpi-claim').textContent = countByType.claim||0;
+      }catch(e){}
+      return r;
+    };
+  })();
+</script>
+{% endblock %}

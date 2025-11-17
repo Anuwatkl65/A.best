@@ -1,0 +1,68 @@
+{% extends "production/base.html" %}
+{% block title %}Dashboard: {{ department_label }} · Machine View{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+  <!-- Breadcrumb + ปุ่มย้อนกลับ -->
+  <div class="flex justify-between items-center mb-4">
+    <div class="flex items-center gap-2 text-sm">
+      <span class="material-symbols-outlined text-base">home</span>
+      <a href="{% url 'home_menu' %}" class="text-purple-700 hover:underline">Home</a>
+      <span class="text-gray-400">/</span>
+      <span class="text-gray-600">Dashboard: {{ department_label }}</span>
+      <span class="text-gray-400">/</span>
+      <span class="text-gray-900 font-semibold">Machine View</span>
+    </div>
+
+    <!-- ใช้ department จาก context ไม่ hard-code Preform -->
+    <a href="{% url 'view_select' %}?department={{ department }}"
+       class="inline-flex items-center gap-1 px-4 py-2 rounded-full bg-white text-gray-700 text-sm shadow hover:bg-purple-50">
+      ← กลับไปเลือกมุมมอง
+    </a>
+  </div>
+
+  <h2 class="text-xl md:text-2xl font-bold text-gray-800 mb-6">
+    Dashboard: {{ department_label }}
+  </h2>
+
+  <!-- กริดของเครื่องจักร -->
+  <div id="machine-grid" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+    <!-- ตัวอย่างการ์ดเครื่อง M311 -->
+    <div class="p-4 rounded-xl bg-white border shadow-sm">
+      <div class="flex justify-between items-start mb-2">
+        <div class="flex items-center gap-2">
+          <h3 class="font-bold text-lg">M311</h3>
+
+          <!-- ปุ่มแว่นขยาย: ไปหน้า machine_detail -->
+          <a href="{% url 'machine_detail' 'M311' %}?department={{ department }}"
+             class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-purple-50 text-purple-600 hover:bg-purple-100"
+             onclick="return confirm('ต้องการดูรายละเอียดงานของเครื่อง M311 ใช่หรือไม่?');">
+            <span class="material-symbols-outlined text-sm">
+              search
+            </span>
+          </a>
+        </div>
+
+        <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+          Ready
+        </span>
+      </div>
+
+      <p class="text-sm text-gray-500 mb-2">เครื่องกระบุก (เก่า)</p>
+
+      <!-- แถบ progress mock ไว้ก่อน -->
+      <div class="w-full bg-gray-200 h-2 rounded-full mb-2">
+        <div class="h-2 bg-green-400 rounded-full" style="width: 80%"></div>
+      </div>
+
+      <p class="text-xs text-gray-500">
+        Part: PN-001 | Lot: LOT-001
+      </p>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

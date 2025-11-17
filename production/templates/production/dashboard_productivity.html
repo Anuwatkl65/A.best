@@ -1,0 +1,151 @@
+{% extends "production/base.html" %}
+{% load humanize %}
+{% block title %}Productivity · {{ department_label }}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-6">
+
+  <!-- breadcrumb + หัวข้อ -->
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <nav class="text-xs text-gray-400 mb-1">
+        <a href="{% url 'home_menu' %}" class="hover:text-white/90">Home</a>
+        <span class="mx-1">/</span>
+        <span>Dashboard: {{ department_label }}</span>
+        <span class="mx-1">/</span>
+        <span class="text-purple-500 font-semibold">Productivity View</span>
+      </nav>
+      <h1 class="text-2xl md:text-3xl font-extrabold text-gray-900">
+        Productivity – {{ department_label }}
+      </h1>
+      <p class="text-sm text-gray-500">เลือกระยะเวลาที่ต้องการดูสรุปงานผลิต</p>
+    </div>
+
+    <a href="{% url 'view_select' %}?department={{ department }}"
+      class="inline-flex items-center gap-1 px-4 py-2 rounded-full bg-white text-gray-700 text-sm shadow hover:bg-purple-50">
+      ← กลับไปเลือกแผนก
+    </a>
+  </div>
+
+  <!-- การ์ดเลือกช่วงวันที่ (เหมือนรูปแรก) -->
+  <div class="mb-10">
+    <div class="bg-white rounded-2xl shadow-md max-w-md mx-auto p-6 border border-purple-100">
+      <h2 class="text-xl font-bold text-center mb-1">Productivity View</h2>
+      <p class="text-xs text-gray-500 text-center mb-6">เลือกช่วงวันที่เพื่อดูข้อมูลผลผลิต</p>
+
+      <form method="get" class="space-y-4">
+        <!-- คงค่า department + view ไว้ใน URL -->
+        <input type="hidden" name="department" value="{{ department }}">
+        <input type="hidden" name="view" value="productivity">
+
+        <div class="space-y-1">
+          <label for="from" class="text-sm text-gray-700">วันที่เริ่มต้น</label>
+          <input
+            type="date"
+            id="from"
+            name="from"
+            value="{{ from_date }}"
+            class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:border-purple-400"
+          >
+        </div>
+
+        <div class="space-y-1">
+          <label for="to" class="text-sm text-gray-700">วันที่สิ้นสุด</label>
+          <input
+            type="date"
+            id="to"
+            name="to"
+            value="{{ to_date }}"
+            class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-purple-400 focus:border-purple-400"
+          >
+        </div>
+
+        <div class="pt-2 space-y-2">
+          <button
+            type="submit"
+            class="w-full rounded-xl bg-purple-600 text-white text-sm font-semibold py-2.5 hover:bg-purple-700 transition">
+            สร้างรายงาน
+          </button>
+
+          <button
+            type="button"
+            onclick="alert('ฟังก์ชัน Export to Excel จะเพิ่มภายหลัง');"
+            class="w-full rounded-xl bg-emerald-600 text-white text-sm font-semibold py-2.5 hover:bg-emerald-700 transition">
+            Export to Excel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ตาราง Productivity (เหมือนรูปที่สอง) -->
+  <div class="bg-white rounded-2xl shadow-sm border border-purple-100 overflow-hidden">
+    <div class="flex justify-between items-center px-4 py-3 border-b border-purple-50">
+      <h2 class="text-sm font-semibold text-gray-800">ตาราง Productivity</h2>
+      <span class="text-[11px] text-gray-400">
+        ช่วงวันที่:
+        {% if from_date or to_date %}
+          {{ from_date|default:"-" }} – {{ to_date|default:"-" }}
+        {% else %}
+          ทั้งหมด
+        {% endif %}
+      </span>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead class="bg-purple-50 text-gray-500">
+          <tr>
+            <th class="px-4 py-2 text-left">Lot No</th>
+            <th class="px-4 py-2 text-left">Part No</th>
+            <th class="px-4 py-2 text-left">Customer</th>
+            <th class="px-4 py-2 text-right">เป้า (pcs)</th>
+            <th class="px-4 py-2 text-right">ผลิตแล้ว (pcs)</th>
+            <th class="px-4 py-2 text-right">% ผลิต</th>
+            <th class="px-4 py-2 text-left">Type</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if lots %}
+            {% for lot in lots %}
+            <tr class="border-t border-purple-50">
+              <td class="px-4 py-2 text-gray-800">{{ lot.lot_no }}</td>
+              <td class="px-4 py-2 text-gray-700">{{ lot.part_no|default:"-" }}</td>
+              <td class="px-4 py-2 text-gray-700">{{ lot.customer|default:"-" }}</td>
+              <td class="px-4 py-2 text-right text-gray-800">{{ lot.target|intcomma }}</td>
+              <td class="px-4 py-2 text-right text-gray-800">{{ lot.produced|intcomma }}</td>
+              <td class="px-4 py-2 text-right text-gray-800">
+                {{ lot.progress }}%
+              </td>
+              <td class="px-4 py-2 text-gray-700">
+                {{ lot.type|default:"Order" }}
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="7" class="px-4 py-6 text-center text-gray-400 text-sm">
+                ยังไม่มีข้อมูล Lot ในแผนกนี้
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ถ้าไม่มีค่าจาก backend ให้ default เป็นวันนี้ (เหมือนหน้า Netlify)
+(function() {
+  const fromInput = document.getElementById("from");
+  const toInput = document.getElementById("to");
+  if (!fromInput.value || !toInput.value) {
+    const today = new Date().toISOString().slice(0, 10);
+    if (!fromInput.value) fromInput.value = today;
+    if (!toInput.value) toInput.value = today;
+  }
+})();
+</script>
+{% endblock %}

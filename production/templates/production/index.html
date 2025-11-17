@@ -1,0 +1,69 @@
+{% extends "production/base.html" %}
+{% block title %}เมนูหลัก · Production Tracker{% endblock %}
+
+{% block content %}
+  <div class="page-container">
+    <div class="text-center mb-6">
+      <h2 class="text-[28px] font-bold text-gray-800">เลือกเมนูที่ต้องการ</h2>
+      <p class="text-gray-500">กดเลือกฟังก์ชันที่ต้องการใช้งาน</p>
+    </div>
+
+    <!-- การ์ดเมนู -->
+    <div class="space-y-4">
+      <a href="{% url 'department_select' %}" class="block p-4 menu-card">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl grid place-items-center font-bold text-blue-600 bg-blue-100">1</div>
+          <div class="flex-1">
+            <p class="text-lg font-semibold text-gray-800">Dashboard</p>
+            <p class="text-gray-500 leading-tight">ดูความคืบหน้าการผลิตแต่ละ Lot</p>
+          </div>
+          <span class="text-gray-400 text-2xl leading-none">›</span>
+        </div>
+      </a>
+
+      <a href="{% url 'scan' %}" class="block p-4 menu-card">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl grid place-items-center font-bold text-green-600 bg-green-100">2</div>
+          <div class="flex-1">
+            <p class="text-lg font-semibold text-gray-800">Scan Barcode</p>
+            <p class="text-gray-500 leading-tight">สแกนบาร์โค้ดเพื่อเพิ่มจำนวนกล่อง</p>
+          </div>
+          <span class="text-gray-400 text-2xl leading-none">›</span>
+        </div>
+      </a>
+
+      <a href="{% url 'qr_export' %}" class="block p-4 menu-card">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl grid place-items-center font-bold text-cyan-600 bg-cyan-100">3</div>
+          <div class="flex-1">
+            <p class="text-lg font-semibold text-gray-800">QR Code Export</p>
+            <p class="text-gray-500 leading-tight">สร้าง QR Code สำหรับ Lot No.</p>
+          </div>
+          <span class="text-gray-400 text-2xl leading-none">›</span>
+        </div>
+      </a>
+
+      <a href="{% url 'data_collect' %}" class="block p-4 menu-card">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl grid place-items-center font-bold text-purple-600 bg-purple-100">4</div>
+          <div class="flex-1">
+            <p class="text-lg font-semibold text-gray-800">Data Collect</p>
+            <p class="text-gray-500 leading-tight">ดูข้อมูลที่บันทึกใน Google Sheet</p>
+          </div>
+          <span class="text-gray-400 text-2xl leading-none">›</span>
+        </div>
+      </a>
+
+      <a href="{% url 'user_control' %}" class="block p-4 menu-card">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl grid place-items-center font-bold text-amber-600 bg-amber-100">5</div>
+          <div class="flex-1">
+            <p class="text-lg font-semibold text-gray-800">User Control</p>
+            <p class="text-gray-500 leading-tight">จัดการข้อมูลผู้ใช้งาน</p>
+          </div>
+          <span class="text-gray-400 text-2xl leading-none">›</span>
+        </div>
+      </a>
+    </div>
+  </div>
+{% endblock %}

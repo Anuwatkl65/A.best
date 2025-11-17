@@ -1,0 +1,108 @@
+/* ===============================
+   A.Best Production Tracker – styles.css
+   วางไฟล์นี้ที่: production/static/css/styles.css
+   =============================== */
+
+/* --- Header gradient (เหมือน Netlify) --- */
+.brand-gradient{
+  background: linear-gradient(90deg, #7c3aed 0%, #6d28d9 50%, #ec4899 100%);
+}
+
+/* --- เมนูการ์ด: ขอบม่วง + เงาอ่อน --- */
+.menu-card{
+  border: 2px solid rgba(124,58,237,.35);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(124,58,237,.12);
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.menu-card:hover{
+  transform: translateY(-2px);
+  border-color: rgba(124,58,237,.7);
+  box-shadow: 0 10px 22px rgba(124,58,237,.18);
+}
+
+/* --- ช่องไฟหัวเพจ --- */
+.section-title{ margin: 24px 0 12px; }
+
+/* --- ปุ่ม pill ตรงกลาง header --- */
+.pill-group{
+  display:inline-flex; gap:.5rem;
+  background: rgba(255,255,255,.16);
+  padding:.35rem; border-radius:999px;
+  backdrop-filter:saturate(140%) blur(4px);
+}
+.pill{
+  display:inline-block; padding:.4rem .9rem;
+  border-radius:999px; font-weight:600; font-size:.9rem;
+  background: rgba(255,255,255,.18);
+}
+
+/* --- ความกว้างคอนเทนต์ (search + การ์ด) ให้เท่ากัน --- */
+.page-container{ max-width: 900px; margin: 0 auto; }
+
+/* --- ตัวช่วยทั่วไป --- */
+.summary-card{ cursor:pointer; }
+.spinner{
+  border:2px solid #fff; border-right-color:transparent;
+  width:16px; height:16px; border-radius:9999px;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{ to{ transform:rotate(360deg) } }
+
+/* --- กล่อง/ปุ่มมาตรฐาน (เสริมความสวยเวลายังไม่ใช้คลาส Tailwind) --- */
+.card{
+  background:#fff; border-radius:16px;
+  box-shadow:0 6px 18px rgba(124,58,237,.12);
+}
+.input{
+  width:100%; height:3rem; border-radius:12px;
+  border:1px solid rgba(0,0,0,.1); padding:0 14px;
+}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  height:2.75rem; padding:0 18px; border-radius:12px;
+  background:#7c3aed; color:#fff; font-weight:600;
+  transition: filter .15s ease;
+}
+.btn:hover{ filter:brightness(1.05); }
+
+/* --- Progress bar สไตล์เขียว -> แดงตามเปอร์เซ็นต์ (ใช้ inline style กว้าง %) --- */
+.progress-wrap{ background:#e5e7eb; border-radius:999px; height:20px; overflow:hidden; }
+.progress-fill{
+  height:20px; color:#fff; font-weight:700; font-size:12px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:999px;
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+}
+
+
+/* --- ตาราง/การ์ด dashboard ให้สม่ำเสมอ --- */
+.table{
+  width:100%; border-collapse:separate; border-spacing:0;
+  background:#fff; border-radius:16px; overflow:hidden;
+  box-shadow:0 6px 18px rgba(124,58,237,.12);
+}
+.table thead{ background:rgba(124,58,237,.08); }
+.table th,.table td{ padding:12px 14px; text-align:left; }
+.table tr+tr td{ border-top:1px solid rgba(0,0,0,.06); }
+
+/* --- Fallback utilities (กันกรณี CDN Tailwind โหลดไม่ขึ้น) --- */
+.w-12{ width:3rem } .h-12{ height:3rem }
+.rounded-md{ border-radius:.375rem } .inline-block{ display:inline-block }
+.text-center{ text-align:center } .text-right{ text-align:right }
+.hidden{ display:none }
+

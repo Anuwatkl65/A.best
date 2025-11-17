@@ -1,0 +1,35 @@
+[
+  {
+    "lot_no": "25W0203004",
+    "customer": "First Class",
+    "part_no": "BP166",
+    "department": "Preform",
+    "machine_no": "M226",
+    "quantity_target": 5000,
+    "quantity_done": 4800,
+    "status": "In Progress",
+    "type": "Order"
+  },
+  {
+    "lot_no": "25W0203005",
+    "customer": "A.Best",
+    "part_no": "BP167",
+    "department": "Preform",
+    "machine_no": "M308",
+    "quantity_target": 6000,
+    "quantity_done": 6000,
+    "status": "Completed",
+    "type": "Sample"
+  },
+  {
+    "lot_no": "25W0203006",
+    "customer": "Toyota",
+    "part_no": "BP168",
+    "department": "Assembly",
+    "machine_no": "M301",
+    "quantity_target": 4000,
+    "quantity_done": 0,
+    "status": "Waiting",
+    "type": "Order"
+  }
+]
