@@ -3,7 +3,7 @@
 
 {% block content %}
 
-<!-- Breadcrumb + ปุ่มย้อนกลับไปเลือกมุมมองของแผนก -->
+<!-- Breadcrumb + ปุ่มย้อนกลับ -->
 <div class="flex items-center justify-between mb-6">
   <div class="flex items-center gap-2 text-sm text-gray-500">
     <a href="{% url 'home_menu' %}" class="hover:text-purple-600">Home</a>
@@ -13,10 +13,17 @@
     <span class="font-medium text-gray-700">List View</span>
   </div>
 
-  <a href="{% url 'view_select' %}?department={{ department }}"
-     class="px-4 py-2 rounded-full border border-purple-300 bg-white text-sm text-gray-700 hover:bg-purple-50 shadow-sm">
-    ← กลับไปเลือกมุมมอง
-  </a>
+  {% if department == "Overall" %}
+    <a href="{% url 'department_select' %}"
+       class="px-4 py-2 rounded-full border border-purple-300 bg-white text-sm text-gray-700 hover:bg-purple-50 shadow-sm">
+      ← กลับไปเลือกแผนก
+    </a>
+  {% else %}
+    <a href="{% url 'view_select' %}?department={{ department }}"
+       class="px-4 py-2 rounded-full border border-purple-300 bg-white text-sm text-gray-700 hover:bg-purple-50 shadow-sm">
+      ← กลับไปเลือกมุมมอง
+    </a>
+  {% endif %}
 </div>
 
 <!-- หัวข้อ -->
@@ -30,98 +37,130 @@
 <!-- แถวบน: สรุปตามประเภท (กดได้ + ไฮไลต์) -->
 <div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4">
 
-  {# All Types #}
-  <a href="{% url 'dashboard' %}?department={{ department }}&view=list"
+  <!-- All Types -->
+  <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
      class="block rounded-2xl px-4 py-3 text-center border transition
             {% if active_type == 'all' %}
               border-purple-500 bg-white shadow-md
             {% else %}
               border-purple-200/60 bg-white
             {% endif %}">
-    <p class="text-xs uppercase tracking-wide text-gray-500">All Types</p>
+    <p class="text-xs uppercase tracking-wide text-gray-500">ALL TYPES</p>
     <p class="text-2xl font-bold mt-1">{{ type_counts.all }}</p>
   </a>
 
-  {# Order #}
-  <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=order"
+  <!-- Order -->
+  <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=order{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
      class="block rounded-2xl px-4 py-3 text-center border transition
             {% if active_type == 'order' %}
               border-green-500 bg-green-50 shadow-md
             {% else %}
               border-green-200/70 bg-green-50
             {% endif %}">
-    <p class="text-xs uppercase tracking-wide text-gray-500">Order</p>
+    <p class="text-xs uppercase tracking-wide text-gray-500">ORDER</p>
     <p class="text-2xl font-bold mt-1 text-green-700">{{ type_counts.order }}</p>
   </a>
 
-  {# Sample #}
-  <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=sample"
+  <!-- Sample -->
+  <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=sample{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
      class="block rounded-2xl px-4 py-3 text-center border transition
             {% if active_type == 'sample' %}
               border-yellow-500 bg-yellow-50 shadow-md
             {% else %}
               border-yellow-200/70 bg-yellow-50
             {% endif %}">
-    <p class="text-xs uppercase tracking-wide text-gray-500">Sample</p>
+    <p class="text-xs uppercase tracking-wide text-gray-500">SAMPLE</p>
     <p class="text-2xl font-bold mt-1 text-yellow-700">{{ type_counts.sample }}</p>
   </a>
 
-  {# Reserved #}
-  <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=reserved"
+  <!-- Reserved -->
+  <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=reserved{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
      class="block rounded-2xl px-4 py-3 text-center border transition
             {% if active_type == 'reserved' %}
               border-blue-500 bg-blue-50 shadow-md
             {% else %}
               border-blue-200/70 bg-blue-50
             {% endif %}">
-    <p class="text-xs uppercase tracking-wide text-gray-500">Reserved</p>
+    <p class="text-xs uppercase tracking-wide text-gray-500">RESERVED</p>
     <p class="text-2xl font-bold mt-1 text-blue-700">{{ type_counts.reserved }}</p>
   </a>
 
-  {# Extra #}
-  <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=extra"
+  <!-- Extra -->
+  <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=extra{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
      class="block rounded-2xl px-4 py-3 text-center border transition
             {% if active_type == 'extra' %}
               border-orange-500 bg-orange-50 shadow-md
             {% else %}
               border-orange-200/70 bg-orange-50
             {% endif %}">
-    <p class="text-xs uppercase tracking-wide text-gray-500">Extra</p>
+    <p class="text-xs uppercase tracking-wide text-gray-500">EXTRA</p>
     <p class="text-2xl font-bold mt-1 text-orange-700">{{ type_counts.extra }}</p>
   </a>
 
-  {# Claim #}
-  <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=claim"
+  <!-- Claim -->
+  <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=claim{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
      class="block rounded-2xl px-4 py-3 text-center border transition
             {% if active_type == 'claim' %}
               border-rose-500 bg-rose-50 shadow-md
             {% else %}
               border-rose-200/70 bg-rose-50
             {% endif %}">
-    <p class="text-xs uppercase tracking-wide text-gray-500">Claim</p>
+    <p class="text-xs uppercase tracking-wide text-gray-500">CLAIM</p>
     <p class="text-2xl font-bold mt-1 text-rose-700">{{ type_counts.claim }}</p>
   </a>
 
 </div>
 
-<!-- แถวสอง: ทั้งหมด / รอผลิต / กำลังผลิต / เสร็จแล้ว -->
+<!-- แถวสอง: ทั้งหมด / รอผลิต / กำลังผลิต / เสร็จแล้ว (กดได้) -->
 <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
-  <div class="bg-white rounded-2xl shadow-sm border border-purple-200/60 px-4 py-4 text-center">
+
+  <!-- แผนทั้งหมด -->
+  <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_type != 'all' %}&lot_type={{ active_type }}{% endif %}&status=all"
+     class="block bg-white rounded-2xl shadow-sm px-4 py-4 text-center border transition
+            {% if active_status == 'all' %}
+              border-purple-500
+            {% else %}
+              border-purple-200/60
+            {% endif %}">
     <p class="text-xs text-gray-500">แผนทั้งหมด</p>
     <p class="text-3xl font-bold mt-1">{{ summary.total_lots }}</p>
-  </div>
-  <div class="bg-white rounded-2xl shadow-sm border border-yellow-200/70 px-4 py-4 text-center">
+  </a>
+
+  <!-- รอผลิต -->
+  <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_type != 'all' %}&lot_type={{ active_type }}{% endif %}&status=waiting"
+     class="block bg-white rounded-2xl shadow-sm px-4 py-4 text-center border transition
+            {% if active_status == 'waiting' %}
+              border-yellow-500
+            {% else %}
+              border-yellow-200/70
+            {% endif %}">
     <p class="text-xs text-gray-500">รอผลิต</p>
     <p class="text-3xl font-bold mt-1 text-yellow-600">{{ summary.waiting }}</p>
-  </div>
-  <div class="bg-white rounded-2xl shadow-sm border border-orange-200/70 px-4 py-4 text-center">
+  </a>
+
+  <!-- กำลังผลิต -->
+  <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_type != 'all' %}&lot_type={{ active_type }}{% endif %}&status=in_progress"
+     class="block bg-white rounded-2xl shadow-sm px-4 py-4 text-center border transition
+            {% if active_status == 'in_progress' %}
+              border-orange-500
+            {% else %}
+              border-orange-200/70
+            {% endif %}">
     <p class="text-xs text-gray-500">กำลังผลิต</p>
     <p class="text-3xl font-bold mt-1 text-orange-600">{{ summary.in_progress }}</p>
-  </div>
-  <div class="bg-white rounded-2xl shadow-sm border border-emerald-200/70 px-4 py-4 text-center">
+  </a>
+
+  <!-- ผลิตเสร็จแล้ว -->
+  <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_type != 'all' %}&lot_type={{ active_type }}{% endif %}&status=finished"
+     class="block bg-white rounded-2xl shadow-sm px-4 py-4 text-center border transition
+            {% if active_status == 'finished' %}
+              border-emerald-500
+            {% else %}
+              border-emerald-200/70
+            {% endif %}">
     <p class="text-xs text-gray-500">ผลิตเสร็จแล้ว</p>
     <p class="text-3xl font-bold mt-1 text-emerald-600">{{ summary.finished }}</p>
-  </div>
+  </a>
 </div>
 
 <!-- ช่องค้นหา -->
@@ -131,11 +170,12 @@
   {% if active_type != 'all' %}
     <input type="hidden" name="lot_type" value="{{ active_type }}">
   {% endif %}
+  {% if active_status and active_status != 'all' %}
+    <input type="hidden" name="status" value="{{ active_status }}">
+  {% endif %}
   <div class="flex gap-2">
     <div class="relative flex-1">
-      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">
-        🔍
-      </span>
+      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">🔍</span>
       <input
         type="text"
         name="q"
@@ -152,19 +192,16 @@
   </div>
 </form>
 
-<!-- รายการ LOT (การ์ด กดแล้วไปหน้า detail) -->
+<!-- รายการ LOT -->
 <div class="space-y-4">
   {% if lots %}
     {% for lot in lots %}
       <a href="{% url 'lot_detail' lot.lot_no %}?department={{ department }}"
          class="block bg-white rounded-2xl shadow-md border border-purple-200/60 overflow-hidden
                 hover:shadow-lg hover:-translate-y-0.5 transform transition">
-        <!-- Header card -->
         <div class="px-5 pt-4 pb-3 flex items-center justify-between gap-4">
           <div>
-            <p class="text-sm font-semibold text-gray-900">
-              {{ lot.lot_no }}
-            </p>
+            <p class="text-sm font-semibold text-gray-900">{{ lot.lot_no }}</p>
             <p class="text-xs text-gray-500">
               Part No : {{ lot.part_no }} | Customer : {{ lot.customer }}
             </p>
@@ -182,17 +219,13 @@
               {% else %}bg-gray-50 text-gray-700 border border-gray-200{% endif %}">
               {{ lot.type }}
             </span>
-            <p class="text-xs text-gray-400 mt-1">
-              {{ lot.progress }}%
-            </p>
+            <p class="text-xs text-gray-400 mt-1">{{ lot.progress }}%</p>
           </div>
         </div>
 
-        <!-- Progress bar -->
         <div class="px-5 pb-3">
           <div class="w-full h-4 rounded-full bg-gray-200 overflow-hidden">
-            <div class="h-4 rounded-full bg-lime-400"
-                 style="width: {{ lot.progress }}%;"></div>
+            <div class="h-4 rounded-full bg-lime-400" style="width: {{ lot.progress }}%;"></div>
           </div>
           <div class="flex justify-between text-xs text-gray-500 mt-1.5">
             <span>ผลิตแล้ว {{ lot.produced }} / {{ lot.target }} pcs</span>
@@ -200,7 +233,6 @@
           </div>
         </div>
 
-        <!-- Footer info (วันที่ scan) -->
         <div class="px-5 pb-4 border-t border-gray-100 text-xs text-gray-500">
           <div class="flex flex-wrap gap-4">
             <span>สแกนครั้งแรก : {{ lot.first_scan|date:"d/m/Y H:i:s" }}</span>
@@ -217,4 +249,3 @@
 </div>
 
 {% endblock %}
--

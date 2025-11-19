@@ -1,112 +1,86 @@
-{% extends "production/base.html" %}
-{% block title %}Machine {{ machine_no }} · Production Tracker{% endblock %}
+# views.py
+from django.db.models import Sum, Max
+from django.db.models.functions import TruncHour
 
-{% block content %}
-<div class="mb-6">
-  <!-- breadcrumb -->
-  <div class="flex justify-between items-center mb-4">
-    <div class="text-sm text-gray-500 flex items-center gap-1">
-      <a href="{% url 'home_menu' %}" class="hover:text-purple-600">Home</a>
-      <span>/</span>
-      <a href="{% url 'view_select' %}?department={{ department }}" class="hover:text-purple-600">
-        Dashboard: {{ department_label }}
-      </a>
-      <span>/</span>
-      <span class="font-semibold text-gray-700">Machine {{ machine_no }}</span>
-    </div>
+@login_required
+def machine_detail(request, machine_no):
+    dept = request.GET.get("department", "Preform")
+    department_label = LABELS.get(dept, dept)
 
-    <a href="{% url 'view_select' %}?department={{ department }}"
-       class="px-4 py-2 rounded-full border bg-white hover:bg-gray-100 text-sm flex items-center gap-1">
-      <span class="material-symbols-outlined text-sm">arrow_back</span>
-      <span>ย้อนกลับ</span>
-    </a>
-  </div>
+    # ----- 1) ดึง Lot ทั้งหมดของเครื่องนี้ -----
+    lot_qs = Lot.objects.filter(machine_no__iexact=machine_no)
 
-  <!-- หัวข้อ -->
-  <h1 class="text-2xl md:text-3xl font-extrabold text-gray-900 mb-1">
-    Machine {{ machine_no }}
-  </h1>
-  <p class="text-gray-500 text-sm">
-    สรุปการผลิตของเครื่องในแผนก {{ department_label }}
-  </p>
-</div>
+    # ใช้ lot ที่มีการสแกนล่าสุดเป็น "lot ปัจจุบันของเครื่อง"
+    lot_qs = lot_qs.annotate(last_scan_time=Max("scans__scanned_at"))
+    current_lot = lot_qs.order_by("-last_scan_time").first()
 
-<!-- summary card -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-  <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-4">
-    <div class="text-xs text-gray-500">จำนวนแผนทั้งหมด</div>
-    <div class="text-2xl font-bold text-gray-800">{{ lots|length }}</div>
-  </div>
-  <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-4">
-    <div class="text-xs text-gray-500">เป้าผลิตรวม (pcs)</div>
-    <div class="text-2xl font-bold text-gray-800">{{ total_target|default:0 }}</div>
-  </div>
-  <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-4">
-    <div class="flex justify-between items-center mb-2">
-      <span class="text-xs text-gray-500">ผลิตแล้วรวม (pcs)</span>
-      <span class="text-xs font-semibold text-purple-700">
-        {{ overall_progress }}%
-      </span>
-    </div>
-    <div class="text-lg font-bold text-gray-800 mb-2">{{ total_produced|default:0 }}</div>
-    <div class="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
-      <div class="h-full bg-purple-500" style="width: {{ overall_progress }}%"></div>
-    </div>
-  </div>
-</div>
+    # ถ้าเครื่องยังไม่มี lot เลย
+    if not current_lot:
+        ctx = {
+            "department": dept,
+            "department_label": department_label,
+            "machine_no": machine_no,
+            "current_lot": None,
+            "status": "Ready",
+            "produced": 0,
+            "target": 0,
+            "progress": 0,
+            "first_scan": None,
+            "last_scan": None,
+            "chart_labels": "[]",
+            "chart_values": "[]",
+        }
+        return render(request, "production/machine_detail.html", ctx)
 
-<!-- ตาราง lot ของเครื่องนี้ -->
-<div class="bg-white rounded-2xl shadow-sm border border-purple-100 overflow-hidden">
-  <div class="px-4 py-3 border-b flex justify-between items-center">
-    <h2 class="font-semibold text-gray-800 text-sm">
-      แผนการผลิตของเครื่อง {{ machine_no }}
-    </h2>
-  </div>
+    # ----- 2) คำนวณข้อมูลของ Lot ปัจจุบัน -----
+    produced = current_lot.scans.aggregate(s=Sum("qty"))["s"] or 0
+    target = current_lot.target or current_lot.production_quantity or 0
 
-  <div class="overflow-x-auto">
-    <table class="min-w-full text-sm">
-      <thead class="bg-gray-50 text-gray-600">
-        <tr>
-          <th class="px-4 py-2 text-left">Lot No</th>
-          <th class="px-4 py-2 text-left">Part No</th>
-          <th class="px-4 py-2 text-left">Customer</th>
-          <th class="px-4 py-2 text-right">เป้า (pcs)</th>
-          <th class="px-4 py-2 text-right">ผลิตแล้ว (pcs)</th>
-          <th class="px-4 py-2 text-center">% ผลิต</th>
-          <th class="px-4 py-2 text-center">Type</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% if lots %}
-          {% for row in lots %}
-          <tr class="border-t last:border-b hover:bg-purple-50/40">
-            <td class="px-4 py-2 font-semibold text-gray-800">{{ row.lot_no }}</td>
-            <td class="px-4 py-2 text-gray-700">{{ row.part_no }}</td>
-            <td class="px-4 py-2 text-gray-700">{{ row.customer }}</td>
-            <td class="px-4 py-2 text-right">{{ row.target }}</td>
-            <td class="px-4 py-2 text-right">{{ row.produced }}</td>
-            <td class="px-4 py-2 text-center">
-              <div class="text-xs font-semibold text-gray-800 mb-1">{{ row.progress }}%</div>
-              <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <div class="h-full bg-green-400" style="width: {{ row.progress }}%"></div>
-              </div>
-            </td>
-            <td class="px-4 py-2 text-center">
-              <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs bg-purple-100 text-purple-700">
-                {{ row.type }}
-              </span>
-            </td>
-          </tr>
-          {% endfor %}
-        {% else %}
-          <tr>
-            <td colspan="7" class="px-4 py-8 text-center text-gray-400 text-sm">
-              ยังไม่มีข้อมูลสำหรับเครื่องนี้
-            </td>
-          </tr>
-        {% endif %}
-      </tbody>
-    </table>
-  </div>
-</div>
-{% endblock %}
+    if target > 0:
+        progress = min(100, int(produced * 100 / target))
+    else:
+        progress = 0
+
+    first_scan = current_lot.scans.order_by("scanned_at").first()
+    last_scan = current_lot.scans.order_by("-scanned_at").first()
+
+    # สถานะง่าย ๆ จาก progress (จะเปลี่ยน logic ภายหลังได้)
+    if produced == 0:
+        status = "Ready"
+    elif progress >= 100:
+        status = "Finished"
+    else:
+        status = "Running"
+
+    # ----- 3) เตรียมข้อมูลกราฟรายชั่วโมง 24 ชม. ล่าสุด -----
+    hourly_qs = (
+        current_lot.scans
+        .annotate(h=TruncHour("scanned_at"))
+        .values("h")
+        .annotate(total_qty=Sum("qty"))
+        .order_by("h")
+    )
+
+    chart_labels = []
+    chart_values = []
+    for row in hourly_qs:
+        h = row["h"]
+        qty = row["total_qty"] or 0
+        chart_labels.append(h.strftime("%H:%M"))
+        chart_values.append(qty)
+
+    ctx = {
+        "department": dept,
+        "department_label": department_label,
+        "machine_no": machine_no,
+        "current_lot": current_lot,
+        "status": status,
+        "produced": produced,
+        "target": target,
+        "progress": progress,
+        "first_scan": first_scan.scanned_at if first_scan else None,
+        "last_scan": last_scan.scanned_at if last_scan else None,
+        "chart_labels": json.dumps(chart_labels),
+        "chart_values": json.dumps(chart_values),
+    }
+    return render(request, "production/machine_detail.html", ctx)

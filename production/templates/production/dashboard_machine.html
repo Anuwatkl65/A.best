@@ -4,65 +4,265 @@
 {% block content %}
 <div class="page-container">
 
-  <!-- Breadcrumb + ปุ่มย้อนกลับ -->
-  <div class="flex justify-between items-center mb-4">
+  <!-- Breadcrumb -->
+  <div class="flex justify-between items-center mb-6">
     <div class="flex items-center gap-2 text-sm">
       <span class="material-symbols-outlined text-base">home</span>
-      <a href="{% url 'home_menu' %}" class="text-purple-700 hover:underline">Home</a>
+      <a href="{% url 'home_menu' %}" class="text-purple-700 hover:underline">
+        Home
+      </a>
       <span class="text-gray-400">/</span>
       <span class="text-gray-600">Dashboard: {{ department_label }}</span>
       <span class="text-gray-400">/</span>
       <span class="text-gray-900 font-semibold">Machine View</span>
     </div>
 
-    <!-- ใช้ department จาก context ไม่ hard-code Preform -->
     <a href="{% url 'view_select' %}?department={{ department }}"
-       class="inline-flex items-center gap-1 px-4 py-2 rounded-full bg-white text-gray-700 text-sm shadow hover:bg-purple-50">
+       class="inline-flex items-center gap-1 px-4 py-2 rounded-full bg-white text-gray-700 text-sm border border-purple-300 hover:bg-purple-50 shadow-sm">
       ← กลับไปเลือกมุมมอง
     </a>
   </div>
 
-  <h2 class="text-xl md:text-2xl font-bold text-gray-800 mb-6">
-    Dashboard: {{ department_label }}
-  </h2>
-
-  <!-- กริดของเครื่องจักร -->
-  <div id="machine-grid" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-
-    <!-- ตัวอย่างการ์ดเครื่อง M311 -->
-    <div class="p-4 rounded-xl bg-white border shadow-sm">
-      <div class="flex justify-between items-start mb-2">
-        <div class="flex items-center gap-2">
-          <h3 class="font-bold text-lg">M311</h3>
-
-          <!-- ปุ่มแว่นขยาย: ไปหน้า machine_detail -->
-          <a href="{% url 'machine_detail' 'M311' %}?department={{ department }}"
-             class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-purple-50 text-purple-600 hover:bg-purple-100"
-             onclick="return confirm('ต้องการดูรายละเอียดงานของเครื่อง M311 ใช่หรือไม่?');">
-            <span class="material-symbols-outlined text-sm">
-              search
-            </span>
-          </a>
-        </div>
-
-        <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
-          Ready
-        </span>
-      </div>
-
-      <p class="text-sm text-gray-500 mb-2">เครื่องกระบุก (เก่า)</p>
-
-      <!-- แถบ progress mock ไว้ก่อน -->
-      <div class="w-full bg-gray-200 h-2 rounded-full mb-2">
-        <div class="h-2 bg-green-400 rounded-full" style="width: 80%"></div>
-      </div>
-
-      <p class="text-xs text-gray-500">
-        Part: PN-001 | Lot: LOT-001
-      </p>
+  <!-- หัวข้อ -->
+  <div class="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+    <div>
+      <h1 class="text-2xl md:text-3xl font-extrabold text-gray-900">
+        Dashboard: {{ department_label }}
+      </h1>
+      <p class="text-gray-500 text-sm">Machine View</p>
     </div>
 
+    <!-- ปุ่มเปลี่ยน Layout -->
+    <div class="inline-flex rounded-full bg-gray-100 p-1 text-xs md:text-sm">
+      <a href="{% url 'dashboard' %}?department={{ department }}&view=machine&layout=card"
+         class="px-3 md:px-4 py-1.5 rounded-full font-medium
+                {% if layout == 'card' %}
+                  bg-white text-purple-700 shadow-sm border border-purple-300
+                {% else %}
+                  text-gray-500 hover:text-gray-700
+                {% endif %}">
+        แบบการ์ด
+      </a>
+      <a href="{% url 'dashboard' %}?department={{ department }}&view=machine&layout=table"
+         class="px-3 md:px-4 py-1.5 rounded-full font-medium
+                {% if layout == 'table' %}
+                  bg-white text-purple-700 shadow-sm border border-purple-300
+                {% else %}
+                  text-gray-500 hover:text-gray-700
+                {% endif %}">
+        แบบตาราง
+      </a>
+    </div>
   </div>
+
+  <!-- ถ้า layout = table แสดงแบบตาราง -->
+  {% if layout == "table" %}
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-x-auto">
+      <table class="min-w-full text-xs md:text-sm">
+        <thead class="bg-gray-50 text-gray-500">
+          <tr>
+            <th class="px-4 py-2 text-left font-medium">Machine</th>
+            <th class="px-4 py-2 text-left font-medium">สถานะ</th>
+            <th class="px-4 py-2 text-left font-medium">Lot</th>
+            <th class="px-4 py-2 text-left font-medium">Part</th>
+            <th class="px-4 py-2 text-left font-medium">Customer</th>
+            <th class="px-4 py-2 text-right font-medium">Quantity</th>
+            <th class="px-4 py-2 text-right font-medium">Progress</th>
+            <th class="px-4 py-2 text-left font-medium">สแกนล่าสุด</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {% for m in machines %}
+            {% with lot=m.active_lot %}
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-2 font-semibold text-gray-800">
+                <a href="{% url 'machine_detail' m.machine_no %}?department={{ department }}"
+                   class="hover:text-purple-700 underline-offset-2 hover:underline">
+                  {{ m.machine_no }}
+                </a>
+              </td>
+              <td class="px-4 py-2">
+                {% if m.status == "Running" %}
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200">
+                    ● Running
+                  </span>
+                {% elif m.status == "Finished" %}
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 text-xs font-semibold border border-sky-200">
+                    ● Finished
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-50 text-gray-700 text-xs font-semibold border border-gray-200">
+                    ● Ready
+                  </span>
+                {% endif %}
+              </td>
+              <td class="px-4 py-2 text-gray-700">
+                {{ lot.lot_no|default:"-" }}
+              </td>
+              <td class="px-4 py-2 text-gray-700">
+                {{ lot.part_no|default:"-" }}
+              </td>
+              <td class="px-4 py-2 text-gray-700">
+                {{ lot.customer|default:"-" }}
+              </td>
+              <td class="px-4 py-2 text-right text-gray-800">
+                {% if lot %}
+                  {{ lot.produced }} / {{ lot.target }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td class="px-4 py-2 text-right text-gray-800">
+                {% if lot %}
+                  {{ lot.progress }}%
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td class="px-4 py-2 text-gray-500 text-xs">
+                {% if lot.last_scan %}
+                  {{ lot.last_scan|date:"d/m/Y H:i" }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+            </tr>
+            {% endwith %}
+          {% empty %}
+            <tr>
+              <td colspan="8" class="px-4 py-6 text-center text-gray-400 text-sm">
+                ยังไม่มีข้อมูลเครื่องจักรในแผนกนี้
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  {% else %}
+  <!-- layout = card (ดีฟอลต์) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      {% for m in machines %}
+        {% with lot=m.active_lot %}
+        <div class="bg-white rounded-3xl shadow-sm border border-purple-100 p-4 flex flex-col">
+          <!-- header card -->
+          <div class="flex items-start justify-between gap-2 mb-3">
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="text-lg font-bold text-gray-900">
+                  {{ m.machine_no }}
+                </h2>
+                <a href="{% url 'machine_detail' m.machine_no %}?department={{ department }}"
+                   class="w-7 h-7 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 hover:bg-purple-100"
+                   title="ดูรายละเอียดเครื่อง">
+                  <span class="material-symbols-outlined text-base">search</span>
+                </a>
+              </div>
+              <p class="text-xs text-gray-500 mt-0.5">
+                เครื่องในแผนก {{ department_label }}
+              </p>
+            </div>
+
+            <div class="text-right">
+              {% if m.status == "Running" %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200">
+                  ● Running
+                </span>
+              {% elif m.status == "Finished" %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full bg-sky-50 text-sky-700 text-xs font-semibold border border-sky-200">
+                  ● Finished
+                </span>
+              {% else %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full bg-gray-50 text-gray-700 text-xs font-semibold border border-gray-200">
+                  ● Ready
+                </span>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- detail block -->
+          <div class="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-3 mb-3">
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs md:text-sm">
+              <div class="flex justify-between">
+                <span class="text-gray-500">Part :</span>
+                <span class="font-semibold text-gray-800">
+                  {{ lot.part_no|default:"-" }}
+                </span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Lot :</span>
+                <span class="font-semibold text-gray-800">
+                  {{ lot.lot_no|default:"-" }}
+                </span>
+              </div>
+              <div class="flex justify-between col-span-2">
+                <span class="text-gray-500">Customer :</span>
+                <span class="font-semibold text-gray-800">
+                  {{ lot.customer|default:"-" }}
+                </span>
+              </div>
+              <div class="flex justify-between col-span-2">
+                <span class="text-gray-500">Quantity :</span>
+                <span class="font-semibold text-gray-800">
+                  {% if lot %}
+                    {{ lot.produced }} / {{ lot.target }} pcs
+                  {% else %}
+                    - / -
+                  {% endif %}
+                </span>
+              </div>
+            </div>
+
+            <!-- progress bar -->
+            <div class="mt-3">
+              <div class="w-full h-2.5 rounded-full bg-gray-200 overflow-hidden">
+                <div class="h-2.5 rounded-full bg-lime-400"
+                     style="width: {% if lot %}{{ lot.progress }}{% else %}0{% endif %}%;">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- footer + mini chart placeholder -->
+          <div class="mt-auto">
+            <div class="flex justify-between text-[11px] text-gray-500 mb-2">
+              <span>
+                สแกนครั้งแรก :
+                {% if lot.first_scan %}
+                  <span class="font-semibold">
+                    {{ lot.first_scan|date:"d/m H:i" }}
+                  </span>
+                {% else %}-{% endif %}
+              </span>
+              <span class="text-right">
+                สแกนล่าสุด :
+                {% if lot.last_scan %}
+                  <span class="font-semibold">
+                    {{ lot.last_scan|date:"d/m H:i" }}
+                  </span>
+                {% else %}-{% endif %}
+              </span>
+            </div>
+
+            <div class="border-t border-gray-100 pt-2">
+              <p class="text-[11px] text-gray-400 mb-1">
+                ปริมาณการสแกนรายชั่วโมง (ตัวอย่าง layout)
+              </p>
+              <div class="h-24 rounded-2xl bg-gray-50 border border-dashed border-gray-200
+                          flex items-center justify-center text-[11px] text-gray-400">
+                (พื้นที่สำหรับกราฟจริงในอนาคต)
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endwith %}
+      {% empty %}
+        <p class="text-center text-gray-400 text-sm col-span-full py-8">
+          ยังไม่มีข้อมูลเครื่องจักรในแผนกนี้
+        </p>
+      {% endfor %}
+    </div>
+  {% endif %}
 
 </div>
 {% endblock %}
