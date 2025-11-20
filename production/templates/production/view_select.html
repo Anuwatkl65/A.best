@@ -2,38 +2,113 @@
 {% block title %}เลือกมุมมอง · Production Tracker{% endblock %}
 
 {% block content %}
-<div class="text-center mb-8">
-<a href="{% url 'department_select' %}?department=Preform"
-   class="inline-flex items-center gap-1 px-4 py-2 rounded-full bg-white text-gray-700 text-sm shadow hover:bg-purple-50">
-   ← กลับไปเลือกแผนก
-</a>
+<div class="max-w-4xl mx-auto px-4 py-10">
 
+  <div class="text-center mb-10 relative">
+    <div class="absolute left-0 top-1/2 -translate-y-1/2 hidden md:block">
+        <a href="{% url 'department_select' %}"
+           class="inline-flex items-center gap-1 px-4 py-2 rounded-full bg-white border border-gray-200 text-gray-600 text-sm hover:bg-purple-50 hover:text-purple-700 transition-colors">
+           <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+           เลือกแผนก
+        </a>
+    </div>
 
-   <h2 class="text-2xl md:text-3xl font-extrabold text-gray-800">เลือกมุมมอง</h2>
-   <p class="text-gray-500">แผนก: {{ department_label }}</p>
+    <div class="md:hidden mb-4 flex justify-center">
+        <a href="{% url 'department_select' %}"
+           class="inline-flex items-center gap-1 px-4 py-2 rounded-full bg-white border border-gray-200 text-gray-600 text-sm hover:bg-purple-50">
+           <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+           กลับไปเลือกแผนก
+        </a>
+    </div>
+
+    <h2 class="text-3xl font-extrabold text-gray-900">เลือกมุมมอง</h2>
+    <div class="mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-purple-50 text-purple-700 font-medium text-sm">
+        <span class="material-symbols-outlined text-[18px]">domain</span>
+        แผนก: {{ department_label }}
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+    <a href="{% url 'dashboard' %}?department={{ department }}&view=list"
+       class="view-card group">
+       <div class="icon-box bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white">
+           <span class="material-symbols-outlined text-3xl">list_alt</span>
+       </div>
+       <div class="flex-1 text-left">
+           <h3 class="text-lg font-bold text-gray-800 group-hover:text-blue-700">List View</h3>
+           <p class="text-sm text-gray-500 mt-1">ดูรายการ Lot ทั้งหมดแบบละเอียด เรียงตามลำดับ</p>
+       </div>
+       <span class="material-symbols-outlined text-gray-300 group-hover:text-blue-500">chevron_right</span>
+    </a>
+
+    <a href="{% url 'dashboard' %}?department={{ department }}&view=machine"
+       class="view-card group">
+       <div class="icon-box bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white">
+           <span class="material-symbols-outlined text-3xl">precision_manufacturing</span>
+       </div>
+       <div class="flex-1 text-left">
+           <h3 class="text-lg font-bold text-gray-800 group-hover:text-purple-700">Machine View</h3>
+           <p class="text-sm text-gray-500 mt-1">ดูสถานะการทำงานแยกตามรายเครื่องจักร</p>
+       </div>
+       <span class="material-symbols-outlined text-gray-300 group-hover:text-purple-500">chevron_right</span>
+    </a>
+
+    <a href="{% url 'dashboard' %}?department={{ department }}&view=order"
+       class="view-card group">
+       <div class="icon-box bg-green-50 text-green-600 group-hover:bg-green-600 group-hover:text-white">
+           <span class="material-symbols-outlined text-3xl">inventory_2</span>
+       </div>
+       <div class="flex-1 text-left">
+           <h3 class="text-lg font-bold text-gray-800 group-hover:text-green-700">Order View</h3>
+           <p class="text-sm text-gray-500 mt-1">สรุปยอดตามประเภท (Order, Sample, etc.)</p>
+       </div>
+       <span class="material-symbols-outlined text-gray-300 group-hover:text-green-500">chevron_right</span>
+    </a>
+
+    <a href="{% url 'dashboard' %}?department={{ department }}&view=productivity"
+       class="view-card group">
+       <div class="icon-box bg-orange-50 text-orange-600 group-hover:bg-orange-600 group-hover:text-white">
+           <span class="material-symbols-outlined text-3xl">monitoring</span>
+       </div>
+       <div class="flex-1 text-left">
+           <h3 class="text-lg font-bold text-gray-800 group-hover:text-orange-700">Productivity View</h3>
+           <p class="text-sm text-gray-500 mt-1">รายงานยอดผลิตรายวันและ Export ข้อมูล</p>
+       </div>
+       <span class="material-symbols-outlined text-gray-300 group-hover:text-orange-500">chevron_right</span>
+    </a>
+
+  </div>
+
 </div>
 
-<div class="grid grid-cols-1 gap-4 max-w-3xl mx-auto">
+<style>
+    .view-card {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        background: white;
+        border: 2px solid #f3f4f6; /* สีขอบจางๆ */
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+    }
+    
+    .view-card:hover {
+        border-color: currentColor; /* เปลี่ยนสีขอบตามสีข้อความที่ hover */
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.08);
+    }
 
-   <a href="{% url 'dashboard' %}?department={{ department }}&view=list"
-      class="block p-4 menu-card text-center">
-      List View
-   </a>
-
-   <a href="{% url 'dashboard' %}?department={{ department }}&view=machine"
-      class="block p-4 menu-card text-center">
-      Machine View
-   </a>
-
-   <a href="{% url 'dashboard' %}?department={{ department }}&view=order"
-      class="block p-4 menu-card text-center">
-      Order View
-   </a>
-
-   <a href="{% url 'dashboard' %}?department={{ department }}&view=productivity"
-      class="block p-4 menu-card text-center">
-         Productivity View
-   </a>
-
-</div>
+    .icon-box {
+        width: 64px;
+        height: 64px;
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+</style>
 {% endblock %}

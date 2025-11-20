@@ -39,4 +39,5 @@ path("dashboard/preform/order/", views.dashboard_preform_order, name="dashboard_
     path("data-collect/", views.data_collect, name="data_collect"),
     path("user-control/", views.user_control, name="user_control"),
     path("api/", views.api, name="api"),
+    path("export/productivity/", views.export_productivity_excel, name="export_productivity_excel"),
 ]

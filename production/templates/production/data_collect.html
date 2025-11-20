@@ -1,38 +1,62 @@
 {% extends "production/base.html" %}
 {% block title %}Data Collect{% endblock %}
 {% block content %}
-<h2 class="text-2xl font-bold mb-4 text-gray-800">Data Collect</h2>
-<p class="text-gray-600 mb-4">ตัวอย่างหน้าแสดงข้อมูลจากแหล่งภายนอก (Google Sheet) — ตอนนี้ดึงจากฐาน SQLite/Mock ก่อน</p>
+<div class="max-w-5xl mx-auto px-4 py-8">
 
-<div class="bg-white rounded-xl p-4 shadow">
-  <table class="w-full text-sm">
-    <thead class="text-gray-500">
-      <tr>
-        <th class="py-2 text-left">Lot</th>
-        <th class="text-left">Part</th>
-        <th class="text-left">Customer</th>
-        <th class="text-right">Target</th>
-      </tr>
-    </thead>
-    <tbody id="tbl"></tbody>
-  </table>
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-2xl font-bold text-gray-800">Data Collect</h2>
+      <p class="text-sm text-gray-500 mt-1">ข้อมูลจาก Google Sheet (ตัวอย่าง)</p>
+    </div>
+    <a href="{% url 'home_menu' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-600 hover:bg-purple-50 hover:text-purple-700 transition-all shadow-sm">
+      <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+      กลับหน้าหลัก
+    </a>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead class="bg-gray-50 text-gray-500 border-b border-gray-100">
+          <tr>
+            <th class="px-6 py-3 font-medium">Lot No</th>
+            <th class="px-6 py-3 font-medium">Part No</th>
+            <th class="px-6 py-3 font-medium">Customer</th>
+            <th class="px-6 py-3 font-medium text-right">Target</th>
+          </tr>
+        </thead>
+        <tbody id="tbl" class="divide-y divide-gray-100">
+           <tr><td colspan="4" class="p-8 text-center text-gray-400">กำลังโหลดข้อมูล...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 </div>
 
 <script>
   const SCRIPT_URL = "/api/";
   async function load(){
-    const r = await fetch(SCRIPT_URL,{method:'POST',body:new URLSearchParams({action:'getData'})});
-    const j = await r.json();
-    const rows = (j.data?.dashboardData) || j.data || [];
-    const tb = document.getElementById('tbl');
-    tb.innerHTML = rows.map(x=>`
-      <tr class="border-t">
-        <td class="py-2">${x.lot_no||x.lotNo||'-'}</td>
-        <td>${x.part_no||x.partNo||'-'}</td>
-        <td>${x.customer||'-'}</td>
-        <td class="text-right">${(x.target||0).toLocaleString()}</td>
-      </tr>
-    `).join('');
+    try {
+        const r = await fetch(SCRIPT_URL,{method:'POST',body:new URLSearchParams({action:'getData'})});
+        const j = await r.json();
+        const rows = (j.data?.dashboardData) || j.data || [];
+        const tb = document.getElementById('tbl');
+        if(rows.length === 0) {
+            tb.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-gray-400">ไม่พบข้อมูล</td></tr>';
+            return;
+        }
+        tb.innerHTML = rows.map(x=>`
+        <tr class="hover:bg-gray-50 transition-colors">
+            <td class="px-6 py-3 font-medium text-gray-900">${x.lot_no||x.lotNo||'-'}</td>
+            <td class="px-6 py-3 text-gray-600">${x.part_no||x.partNo||'-'}</td>
+            <td class="px-6 py-3 text-gray-600">${x.customer||'-'}</td>
+            <td class="px-6 py-3 text-right font-mono text-gray-700">${(x.target||0).toLocaleString()}</td>
+        </tr>
+        `).join('');
+    } catch(e) {
+        document.getElementById('tbl').innerHTML = '<tr><td colspan="4" class="p-8 text-center text-red-400">Error loading data</td></tr>';
+    }
   }
   load();
 </script>

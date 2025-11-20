@@ -1,251 +1,272 @@
 {% extends "production/base.html" %}
+{% load humanize %}
+
 {% block title %}Dashboard: {{ department_label }} · List View{% endblock %}
 
 {% block content %}
 
-<!-- Breadcrumb + ปุ่มย้อนกลับ -->
-<div class="flex items-center justify-between mb-6">
-  <div class="flex items-center gap-2 text-sm text-gray-500">
-    <a href="{% url 'home_menu' %}" class="hover:text-purple-600">Home</a>
-    <span>/</span>
-    <span>Dashboard: {{ department_label }}</span>
-    <span>/</span>
-    <span class="font-medium text-gray-700">List View</span>
-  </div>
+<div class="max-w-7xl mx-auto px-4 pt-6 pb-10">
 
-  {% if department == "Overall" %}
-    <a href="{% url 'department_select' %}"
-       class="px-4 py-2 rounded-full border border-purple-300 bg-white text-sm text-gray-700 hover:bg-purple-50 shadow-sm">
-      ← กลับไปเลือกแผนก
-    </a>
-  {% else %}
-    <a href="{% url 'view_select' %}?department={{ department }}"
-       class="px-4 py-2 rounded-full border border-purple-300 bg-white text-sm text-gray-700 hover:bg-purple-50 shadow-sm">
-      ← กลับไปเลือกมุมมอง
-    </a>
-  {% endif %}
-</div>
-
-<!-- หัวข้อ -->
-<div class="mb-6">
-  <h1 class="text-2xl md:text-3xl font-extrabold text-gray-900">
-    Dashboard: {{ department_label }}
-  </h1>
-  <p class="text-gray-500 text-sm">List View</p>
-</div>
-
-<!-- แถวบน: สรุปตามประเภท (กดได้ + ไฮไลต์) -->
-<div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4">
-
-  <!-- All Types -->
-  <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
-     class="block rounded-2xl px-4 py-3 text-center border transition
-            {% if active_type == 'all' %}
-              border-purple-500 bg-white shadow-md
-            {% else %}
-              border-purple-200/60 bg-white
-            {% endif %}">
-    <p class="text-xs uppercase tracking-wide text-gray-500">ALL TYPES</p>
-    <p class="text-2xl font-bold mt-1">{{ type_counts.all }}</p>
-  </a>
-
-  <!-- Order -->
-  <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=order{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
-     class="block rounded-2xl px-4 py-3 text-center border transition
-            {% if active_type == 'order' %}
-              border-green-500 bg-green-50 shadow-md
-            {% else %}
-              border-green-200/70 bg-green-50
-            {% endif %}">
-    <p class="text-xs uppercase tracking-wide text-gray-500">ORDER</p>
-    <p class="text-2xl font-bold mt-1 text-green-700">{{ type_counts.order }}</p>
-  </a>
-
-  <!-- Sample -->
-  <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=sample{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
-     class="block rounded-2xl px-4 py-3 text-center border transition
-            {% if active_type == 'sample' %}
-              border-yellow-500 bg-yellow-50 shadow-md
-            {% else %}
-              border-yellow-200/70 bg-yellow-50
-            {% endif %}">
-    <p class="text-xs uppercase tracking-wide text-gray-500">SAMPLE</p>
-    <p class="text-2xl font-bold mt-1 text-yellow-700">{{ type_counts.sample }}</p>
-  </a>
-
-  <!-- Reserved -->
-  <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=reserved{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
-     class="block rounded-2xl px-4 py-3 text-center border transition
-            {% if active_type == 'reserved' %}
-              border-blue-500 bg-blue-50 shadow-md
-            {% else %}
-              border-blue-200/70 bg-blue-50
-            {% endif %}">
-    <p class="text-xs uppercase tracking-wide text-gray-500">RESERVED</p>
-    <p class="text-2xl font-bold mt-1 text-blue-700">{{ type_counts.reserved }}</p>
-  </a>
-
-  <!-- Extra -->
-  <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=extra{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
-     class="block rounded-2xl px-4 py-3 text-center border transition
-            {% if active_type == 'extra' %}
-              border-orange-500 bg-orange-50 shadow-md
-            {% else %}
-              border-orange-200/70 bg-orange-50
-            {% endif %}">
-    <p class="text-xs uppercase tracking-wide text-gray-500">EXTRA</p>
-    <p class="text-2xl font-bold mt-1 text-orange-700">{{ type_counts.extra }}</p>
-  </a>
-
-  <!-- Claim -->
-  <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=claim{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
-     class="block rounded-2xl px-4 py-3 text-center border transition
-            {% if active_type == 'claim' %}
-              border-rose-500 bg-rose-50 shadow-md
-            {% else %}
-              border-rose-200/70 bg-rose-50
-            {% endif %}">
-    <p class="text-xs uppercase tracking-wide text-gray-500">CLAIM</p>
-    <p class="text-2xl font-bold mt-1 text-rose-700">{{ type_counts.claim }}</p>
-  </a>
-
-</div>
-
-<!-- แถวสอง: ทั้งหมด / รอผลิต / กำลังผลิต / เสร็จแล้ว (กดได้) -->
-<div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
-
-  <!-- แผนทั้งหมด -->
-  <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_type != 'all' %}&lot_type={{ active_type }}{% endif %}&status=all"
-     class="block bg-white rounded-2xl shadow-sm px-4 py-4 text-center border transition
-            {% if active_status == 'all' %}
-              border-purple-500
-            {% else %}
-              border-purple-200/60
-            {% endif %}">
-    <p class="text-xs text-gray-500">แผนทั้งหมด</p>
-    <p class="text-3xl font-bold mt-1">{{ summary.total_lots }}</p>
-  </a>
-
-  <!-- รอผลิต -->
-  <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_type != 'all' %}&lot_type={{ active_type }}{% endif %}&status=waiting"
-     class="block bg-white rounded-2xl shadow-sm px-4 py-4 text-center border transition
-            {% if active_status == 'waiting' %}
-              border-yellow-500
-            {% else %}
-              border-yellow-200/70
-            {% endif %}">
-    <p class="text-xs text-gray-500">รอผลิต</p>
-    <p class="text-3xl font-bold mt-1 text-yellow-600">{{ summary.waiting }}</p>
-  </a>
-
-  <!-- กำลังผลิต -->
-  <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_type != 'all' %}&lot_type={{ active_type }}{% endif %}&status=in_progress"
-     class="block bg-white rounded-2xl shadow-sm px-4 py-4 text-center border transition
-            {% if active_status == 'in_progress' %}
-              border-orange-500
-            {% else %}
-              border-orange-200/70
-            {% endif %}">
-    <p class="text-xs text-gray-500">กำลังผลิต</p>
-    <p class="text-3xl font-bold mt-1 text-orange-600">{{ summary.in_progress }}</p>
-  </a>
-
-  <!-- ผลิตเสร็จแล้ว -->
-  <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_type != 'all' %}&lot_type={{ active_type }}{% endif %}&status=finished"
-     class="block bg-white rounded-2xl shadow-sm px-4 py-4 text-center border transition
-            {% if active_status == 'finished' %}
-              border-emerald-500
-            {% else %}
-              border-emerald-200/70
-            {% endif %}">
-    <p class="text-xs text-gray-500">ผลิตเสร็จแล้ว</p>
-    <p class="text-3xl font-bold mt-1 text-emerald-600">{{ summary.finished }}</p>
-  </a>
-</div>
-
-<!-- ช่องค้นหา -->
-<form method="get" class="mb-5">
-  <input type="hidden" name="department" value="{{ department }}">
-  <input type="hidden" name="view" value="list">
-  {% if active_type != 'all' %}
-    <input type="hidden" name="lot_type" value="{{ active_type }}">
-  {% endif %}
-  {% if active_status and active_status != 'all' %}
-    <input type="hidden" name="status" value="{{ active_status }}">
-  {% endif %}
-  <div class="flex gap-2">
-    <div class="relative flex-1">
-      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">🔍</span>
-      <input
-        type="text"
-        name="q"
-        value="{{ search_query }}"
-        placeholder="ค้นหา Lot No, Part No, Customer..."
-        class="w-full h-11 pl-10 pr-3 rounded-2xl border border-purple-200/70 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 text-sm"
-      >
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+    <div>
+      <nav class="flex items-center text-xs text-gray-500 mb-1">
+        <a href="{% url 'home_menu' %}" class="hover:text-purple-600 flex items-center gap-1 transition-colors">
+           <span class="material-symbols-outlined text-[16px]">home</span> Home
+        </a>
+        <span class="mx-2">/</span>
+        {% if department == 'Overall' %}
+            <a href="{% url 'department_select' %}" class="hover:text-purple-600 transition-colors">
+                Dashboard: {{ department_label }}
+            </a>
+        {% else %}
+            <a href="{% url 'view_select' %}?department={{ department }}" class="hover:text-purple-600 transition-colors">
+                Dashboard: {{ department_label }}
+            </a>
+        {% endif %}
+        <span class="mx-2">/</span>
+        <span class="font-bold text-purple-600">List View</span>
+      </nav>
+      <h1 class="text-2xl font-extrabold text-gray-900">
+        ภาพรวมการผลิต ({{ department_label }})
+      </h1>
     </div>
-    <button
-      type="submit"
-      class="px-4 h-11 rounded-2xl bg-purple-600 text-white text-sm font-semibold shadow-sm hover:bg-purple-700">
-      รีเฟรช
-    </button>
-  </div>
-</form>
 
-<!-- รายการ LOT -->
-<div class="space-y-4">
-  {% if lots %}
-    {% for lot in lots %}
-      <a href="{% url 'lot_detail' lot.lot_no %}?department={{ department }}"
-         class="block bg-white rounded-2xl shadow-md border border-purple-200/60 overflow-hidden
-                hover:shadow-lg hover:-translate-y-0.5 transform transition">
-        <div class="px-5 pt-4 pb-3 flex items-center justify-between gap-4">
-          <div>
-            <p class="text-sm font-semibold text-gray-900">{{ lot.lot_no }}</p>
-            <p class="text-xs text-gray-500">
-              Part No : {{ lot.part_no }} | Customer : {{ lot.customer }}
-            </p>
-            <p class="text-xs text-gray-400">
-              Department : {{ lot.department }} | Machine : {{ lot.machine_no }}
-            </p>
-          </div>
-          <div class="text-right">
-            <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold
-              {% if lot.type|lower == 'order' %}bg-green-50 text-green-700 border border-green-200
-              {% elif lot.type|lower == 'sample' %}bg-yellow-50 text-yellow-700 border border-yellow-200
-              {% elif lot.type|lower == 'reserved' %}bg-blue-50 text-blue-700 border border-blue-200
-              {% elif lot.type|lower == 'extra' %}bg-orange-50 text-orange-700 border border-orange-200
-              {% elif lot.type|lower == 'claim' %}bg-rose-50 text-rose-700 border border-rose-200
-              {% else %}bg-gray-50 text-gray-700 border border-gray-200{% endif %}">
-              {{ lot.type }}
-            </span>
-            <p class="text-xs text-gray-400 mt-1">{{ lot.progress }}%</p>
-          </div>
-        </div>
-
-        <div class="px-5 pb-3">
-          <div class="w-full h-4 rounded-full bg-gray-200 overflow-hidden">
-            <div class="h-4 rounded-full bg-lime-400" style="width: {{ lot.progress }}%;"></div>
-          </div>
-          <div class="flex justify-between text-xs text-gray-500 mt-1.5">
-            <span>ผลิตแล้ว {{ lot.produced }} / {{ lot.target }} pcs</span>
-            <span>จำนวนบรรจุต่อกล่อง : {{ lot.boxes }}</span>
-          </div>
-        </div>
-
-        <div class="px-5 pb-4 border-t border-gray-100 text-xs text-gray-500">
-          <div class="flex flex-wrap gap-4">
-            <span>สแกนครั้งแรก : {{ lot.first_scan|date:"d/m/Y H:i:s" }}</span>
-            <span>สแกนล่าสุด : {{ lot.last_scan|date:"d/m/Y H:i:s" }}</span>
-          </div>
-        </div>
+    {% if department == 'Overall' %}
+      <a href="{% url 'department_select' %}" 
+         class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-all shadow-sm">
+        <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+        กลับไปเลือกแผนก
       </a>
-    {% endfor %}
-  {% else %}
-    <p class="text-center text-gray-400 text-sm py-8">
-      ยังไม่มีข้อมูล Lot ในแผนกนี้
-    </p>
-  {% endif %}
+    {% else %}
+      <a href="{% url 'view_select' %}?department={{ department }}" 
+         class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-all shadow-sm">
+        <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+        กลับไปเลือกมุมมอง
+      </a>
+    {% endif %}
+  </div>
+
+  <div class="grid grid-cols-3 md:grid-cols-6 gap-2 mb-3">
+    
+    <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
+       class="mini-filter {% if active_type == 'all' %}mini-filter-active ring-2 ring-purple-500{% endif %}">
+      <span class="text-xs text-gray-500 font-bold uppercase">All</span>
+      <span class="text-lg font-bold text-gray-800">{{ type_counts.all }}</span>
+    </a>
+
+    <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=order{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
+       class="mini-filter bg-green-50 border-green-200 hover:bg-green-100 {% if active_type == 'order' %}ring-2 ring-green-500{% endif %}">
+      <span class="text-xs text-green-600 font-bold uppercase">Order</span>
+      <span class="text-lg font-bold text-gray-800">{{ type_counts.order }}</span>
+    </a>
+
+    <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=sample{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
+       class="mini-filter bg-yellow-50 border-yellow-200 hover:bg-yellow-100 {% if active_type == 'sample' %}ring-2 ring-yellow-500{% endif %}">
+      <span class="text-xs text-yellow-600 font-bold uppercase">Sample</span>
+      <span class="text-lg font-bold text-gray-800">{{ type_counts.sample }}</span>
+    </a>
+
+    <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=reserved{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
+       class="mini-filter bg-blue-50 border-blue-200 hover:bg-blue-100 {% if active_type == 'reserved' %}ring-2 ring-blue-500{% endif %}">
+      <span class="text-xs text-blue-600 font-bold uppercase">Reserved</span>
+      <span class="text-lg font-bold text-gray-800">{{ type_counts.reserved }}</span>
+    </a>
+
+    <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=extra{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
+       class="mini-filter bg-orange-50 border-orange-200 hover:bg-orange-100 {% if active_type == 'extra' %}ring-2 ring-orange-500{% endif %}">
+      <span class="text-xs text-orange-600 font-bold uppercase">Extra</span>
+      <span class="text-lg font-bold text-gray-800">{{ type_counts.extra }}</span>
+    </a>
+
+    <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=claim{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
+       class="mini-filter bg-pink-50 border-pink-200 hover:bg-pink-100 {% if active_type == 'claim' %}ring-2 ring-pink-500{% endif %}">
+      <span class="text-xs text-pink-600 font-bold uppercase">Claim</span>
+      <span class="text-lg font-bold text-gray-800">{{ type_counts.claim }}</span>
+    </a>
+
+  </div>
+
+  <div class="flex flex-col md:flex-row gap-3 mb-6">
+    
+    <div class="flex bg-white rounded-xl border border-gray-200 p-1 shadow-sm flex-shrink-0 overflow-x-auto">
+      <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_type != 'all' %}&lot_type={{ active_type }}{% endif %}&status=all"
+         class="status-tab {% if active_status == 'all' %}bg-gray-100 text-gray-900 font-bold{% endif %}">
+         รวม: {{ summary.total_lots }}
+      </a>
+      <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_type != 'all' %}&lot_type={{ active_type }}{% endif %}&status=waiting"
+         class="status-tab text-red-600 {% if active_status == 'waiting' %}bg-red-50 font-bold ring-1 ring-red-200{% endif %}">
+         รอ: {{ summary.waiting }}
+      </a>
+      <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_type != 'all' %}&lot_type={{ active_type }}{% endif %}&status=in_progress"
+         class="status-tab text-orange-600 {% if active_status == 'in_progress' %}bg-orange-50 font-bold ring-1 ring-orange-200{% endif %}">
+         กำลังผลิต: {{ summary.in_progress }}
+      </a>
+      <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_type != 'all' %}&lot_type={{ active_type }}{% endif %}&status=finished"
+         class="status-tab text-green-600 {% if active_status == 'finished' %}bg-green-50 font-bold ring-1 ring-green-200{% endif %}">
+         เสร็จ: {{ summary.finished }}
+      </a>
+    </div>
+
+    <form method="get" class="flex-grow">
+      <input type="hidden" name="department" value="{{ department }}">
+      <input type="hidden" name="view" value="list">
+      {% if active_type != 'all' %}<input type="hidden" name="lot_type" value="{{ active_type }}">{% endif %}
+      {% if active_status and active_status != 'all' %}<input type="hidden" name="status" value="{{ active_status }}">{% endif %}
+      
+      <div class="relative h-full">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+          <span class="material-symbols-outlined text-[20px]">search</span>
+        </span>
+        <input type="text" name="q" value="{{ search_query }}" 
+               placeholder="ค้นหา Lot, Part, Customer..." 
+               class="w-full h-full min-h-[42px] pl-10 pr-4 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 shadow-sm">
+      </div>
+    </form>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+    {% if lots %}
+      {% for lot in lots %}
+        <a href="{% url 'lot_detail' lot.lot_no %}?department={{ department }}" class="compact-card group">
+          
+          <div class="flex justify-between items-start mb-3 border-b border-gray-100 pb-2">
+            <div>
+              <div class="text-[15px] font-bold text-gray-900 group-hover:text-purple-700 transition-colors">
+                {{ lot.lot_no }}
+              </div>
+              <div class="text-[11px] text-gray-400 flex items-center gap-1">
+                <span class="material-symbols-outlined text-[12px]">calendar_today</span>
+                {{ lot.first_scan|date:"d/m/y"|default:"-" }}
+              </div>
+            </div>
+            <span class="badge-type badge-{{ lot.type|lower|default:'order' }}">
+              {{ lot.type|default:"Order" }}
+            </span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-y-1 gap-x-2 text-xs mb-3">
+            <div>
+              <span class="text-gray-400 block text-[10px]">Customer</span>
+              <span class="font-semibold text-gray-700 truncate block" title="{{ lot.customer }}">{{ lot.customer|default:"-" }}</span>
+            </div>
+            <div>
+              <span class="text-gray-400 block text-[10px]">Part No</span>
+              <span class="font-semibold text-gray-700 truncate block" title="{{ lot.part_no }}">{{ lot.part_no|default:"-" }}</span>
+            </div>
+            <div>
+              <span class="text-gray-400 block text-[10px]">Machine</span>
+              <span class="font-medium text-gray-800 bg-gray-100 px-1.5 py-0.5 rounded inline-block">
+                {{ lot.machine_no|default:"-" }}
+              </span>
+            </div>
+            <div class="text-right">
+              <span class="text-gray-400 block text-[10px]">Target</span>
+              <span class="font-bold text-gray-900">{{ lot.target|intcomma }}</span>
+            </div>
+          </div>
+
+          <div class="mb-1">
+            <div class="flex justify-between items-end mb-1">
+              <span class="text-[10px] font-semibold text-gray-500">Produced</span>
+              <span class="text-xs font-bold text-purple-700">
+                {{ lot.produced|intcomma }} <span class="text-gray-400 font-normal">/ {{ lot.target|intcomma }}</span>
+              </span>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+              <div class="h-full rounded-full transition-all duration-500
+                          {% if lot.progress >= 100 %}bg-green-500{% elif lot.produced == 0 %}bg-gray-300{% else %}bg-purple-500{% endif %}"
+                   style="width: {{ lot.progress }}%;"></div>
+            </div>
+          </div>
+          
+          <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-50">
+             <div class="text-[10px] text-gray-400">
+               {% if lot.boxes %}
+                 <span class="bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded font-medium">📦 {{ lot.boxes }} กล่อง</span>
+               {% endif %}
+             </div>
+             <div class="text-[10px] text-gray-400 text-right">
+                Last: {{ lot.last_scan|date:"H:i"|default:"-" }}
+             </div>
+          </div>
+
+        </a>
+      {% endfor %}
+    {% else %}
+      <div class="col-span-full text-center py-16 bg-white rounded-2xl border border-gray-100 border-dashed">
+        <span class="material-symbols-outlined text-4xl text-gray-300 mb-2">inbox</span>
+        <p class="text-gray-500 text-sm">ไม่พบข้อมูล Lot ในเงื่อนไขนี้</p>
+      </div>
+    {% endif %}
+  </div>
+
 </div>
+
+<style>
+  /* Mini Filter Cards */
+  .mini-filter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 8px 4px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+  .mini-filter:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Status Tabs */
+  .status-tab {
+    padding: 8px 16px;
+    font-size: 0.8rem;
+    color: #6b7280;
+    border-radius: 8px;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .status-tab:hover {
+    background-color: #f9fafb;
+    color: #1f2937;
+  }
+
+  /* Compact Lot Card */
+  .compact-card {
+    display: block;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .compact-card:hover {
+    border-color: #a78bfa;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
+  }
+
+  /* Badges */
+  .badge-type {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 99px;
+    letter-spacing: 0.025em;
+  }
+  .badge-order { background: #dcfce7; color: #15803d; }
+  .badge-sample { background: #fef3c7; color: #a16207; }
+  .badge-reserved { background: #dbeafe; color: #1d4ed8; }
+  .badge-extra { background: #ffedd5; color: #c2410c; }
+  .badge-claim { background: #fce7f3; color: #be185d; }
+</style>
 
 {% endblock %}

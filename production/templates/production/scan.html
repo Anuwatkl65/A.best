@@ -1,26 +1,248 @@
 {% extends "production/base.html" %}
-{% block title %}Scan Barcode{% endblock %}
-{% block content %}
-<h2 class="text-2xl font-bold mb-4 text-gray-800">Scan Barcode</h2>
+{% block title %}Scan Barcode · Production Tracker{% endblock %}
 
-<div class="bg-white rounded-xl p-4 shadow space-y-3">
-  <div id="scan-result" class="text-sm text-gray-600">พร้อมสแกน</div>
-  <div id="reader" class="w-64 h-64 border rounded-lg"></div>
-  <div class="flex gap-2">
-    <button id="test-scan-btn" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500">ทดสอบส่งข้อมูล</button>
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-6">
+
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-2xl font-bold text-gray-800">Scan Barcode</h2>
+      <p class="text-sm text-gray-500">ส่องกล้องที่ QR/Barcode เพื่อบันทึกข้อมูล</p>
+    </div>
+    <a href="{% url 'home_menu' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-600 hover:bg-purple-50 hover:text-purple-700 transition-all shadow-sm">
+      <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+      กลับหน้าหลัก
+    </a>
   </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+       <div class="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+          <h3 class="font-semibold text-gray-700 flex items-center gap-2">
+            <span class="material-symbols-outlined text-purple-600">videocam</span> กล้องสแกน
+          </h3>
+          <span id="camera-status" class="text-xs px-2 py-1 rounded bg-gray-200 text-gray-600">Standby</span>
+       </div>
+       
+       <div class="relative bg-black min-h-[300px] flex items-center justify-center">
+          <div id="reader" class="w-full h-full"></div>
+          <div id="camera-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
+             <span class="material-symbols-outlined text-6xl mb-2 opacity-50">qr_code_scanner</span>
+             <p class="text-sm">กำลังขออนุญาตใช้กล้อง...</p>
+          </div>
+       </div>
+
+       <div class="p-4 text-center">
+          <button id="toggle-camera-btn" class="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg text-sm font-semibold hover:bg-purple-200 transition-colors">
+            ปิด/เปิด กล้อง
+          </button>
+       </div>
+    </div>
+
+    <div class="space-y-6">
+      
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <h3 class="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined text-blue-600">keyboard</span> กรอกข้อมูลเอง
+        </h3>
+        
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">LOT NO.</label>
+            <input type="text" id="lot-input" placeholder="สแกนหรือพิมพ์ Lot No." 
+                   class="w-full px-4 py-3 border border-gray-300 rounded-xl text-lg font-bold text-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all" autofocus>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+             <div>
+               <label class="block text-xs font-medium text-gray-500 mb-1">จำนวน (Qty)</label>
+               <input type="number" id="qty-input" value="1" min="1"
+                      class="w-full px-4 py-2 border border-gray-300 rounded-lg text-center font-semibold focus:ring-2 focus:ring-purple-500 outline-none">
+             </div>
+             <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">เครื่อง (Machine)</label>
+                <input type="text" id="machine-input" value="MC-01"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg text-center font-semibold focus:ring-2 focus:ring-purple-500 outline-none">
+             </div>
+          </div>
+
+          <button id="submit-btn" class="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-lg shadow-md transition-all active:scale-95 flex justify-center items-center gap-2">
+            <span class="material-symbols-outlined">save</span> บันทึกข้อมูล
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <h3 class="font-semibold text-gray-800 mb-3 text-sm">ประวัติการสแกนล่าสุด</h3>
+        <ul id="scan-history" class="space-y-2 text-sm">
+           <li class="text-center text-gray-400 py-4 text-xs">ยังไม่มีรายการสแกน</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
 </div>
 
-<!-- ใช้โหมดทดสอบส่งข้อมูลแบบไม่ใช้กล้อง -->
+<audio id="beep-sound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
 <script>
   const SCRIPT_URL = "/api/";
-  document.getElementById('test-scan-btn').onclick = async ()=>{
-    const lot = prompt('ใส่ LOT ที่ต้องการส่ง (เช่น LOT-AB-0001):','TEST-LOT-001');
-    if(!lot) return;
-    document.getElementById('scan-result').textContent = `กำลังส่ง: ${lot}`;
-    const res = await fetch(SCRIPT_URL,{method:'POST',body:new URLSearchParams({action:'scan',lot_no:lot,qty:1,machine_no:'MC-01'})});
-    const j = await res.json();
-    document.getElementById('scan-result').textContent = j.success||j.status==='success' ? `บันทึกสำเร็จ: ${lot}` : `ผิดพลาด: ${j.message||'unknown'}`;
-  };
+  const beepSound = document.getElementById("beep-sound");
+  const lotInput = document.getElementById("lot-input");
+  const qtyInput = document.getElementById("qty-input");
+  const machineInput = document.getElementById("machine-input");
+  const submitBtn = document.getElementById("submit-btn");
+  const historyList = document.getElementById("scan-history");
+  const cameraStatus = document.getElementById("camera-status");
+  const placeholder = document.getElementById("camera-placeholder");
+
+  let html5QrcodeScanner = null;
+  let isCameraRunning = false;
+
+  // --- ฟังก์ชันจัดการกล้อง ---
+  function onScanSuccess(decodedText, decodedResult) {
+    // เมื่อสแกนสำเร็จ
+    if(lotInput.value !== decodedText) {
+        beepSound.play().catch(e=>{}); // เล่นเสียง
+        lotInput.value = decodedText; // ใส่ค่าลง input
+        
+        // Visual Feedback
+        lotInput.classList.add("bg-green-50", "border-green-500");
+        setTimeout(() => lotInput.classList.remove("bg-green-50", "border-green-500"), 500);
+
+        // Auto Submit? (ถ้าต้องการให้บันทึกเลยให้เปิดบรรทัดล่าง)
+        // submitData(); 
+    }
+  }
+
+  function onScanFailure(error) {
+    // กรณีสแกนไม่ติด (ไม่ต้องทำอะไร เพื่อไม่ให้รก Console)
+  }
+
+  function startCamera() {
+    html5QrcodeScanner = new Html5QrcodeScanner(
+      "reader",
+      { 
+        fps: 10, 
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+        showTorchButtonIfSupported: true
+      },
+      /* verbose= */ false
+    );
+    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    
+    cameraStatus.innerText = "Active";
+    cameraStatus.className = "text-xs px-2 py-1 rounded bg-green-100 text-green-700 font-bold";
+    placeholder.style.display = 'none';
+    isCameraRunning = true;
+  }
+
+  document.getElementById('toggle-camera-btn').onclick = () => {
+     if(isCameraRunning) {
+         html5QrcodeScanner.clear();
+         cameraStatus.innerText = "Paused";
+         cameraStatus.className = "text-xs px-2 py-1 rounded bg-red-100 text-red-700";
+         placeholder.style.display = 'flex';
+         placeholder.innerHTML = '<p>กล้องถูกปิดชั่วคราว</p>';
+         isCameraRunning = false;
+     } else {
+         startCamera();
+     }
+  }
+
+  // --- ฟังก์ชันบันทึกข้อมูล ---
+  async function submitData() {
+      const lot = lotInput.value.trim();
+      const qty = qtyInput.value;
+      const mc = machineInput.value;
+
+      if(!lot) { alert("กรุณาระบุ Lot No."); return; }
+
+      // เปลี่ยนปุ่มเป็น Loading
+      const originalText = submitBtn.innerHTML;
+      submitBtn.innerHTML = '<span class="material-symbols-outlined animate-spin">refresh</span> บันทึก...';
+      submitBtn.disabled = true;
+
+      try {
+          const res = await fetch(SCRIPT_URL, {
+              method: 'POST',
+              body: new URLSearchParams({
+                  action: 'scan',
+                  lot_no: lot,
+                  qty: qty,
+                  machine_no: mc
+              })
+          });
+          const j = await res.json();
+          
+          if(j.status === 'success') {
+              // เพิ่มลง History
+              addHistory(lot, qty, mc);
+              // Clear input
+              lotInput.value = "";
+              lotInput.focus();
+          } else {
+              alert("เกิดข้อผิดพลาด: " + (j.message || "Unknown error"));
+          }
+      } catch(e) {
+          alert("เชื่อมต่อ Server ไม่ได้");
+          console.error(e);
+      } finally {
+          submitBtn.innerHTML = originalText;
+          submitBtn.disabled = false;
+      }
+  }
+
+  function addHistory(lot, qty, mc) {
+      // ลบข้อความ "ไม่มีรายการ" ถ้ามี
+      if(historyList.children[0]?.innerText === "ยังไม่มีรายการสแกน") {
+          historyList.innerHTML = "";
+      }
+      
+      const li = document.createElement("li");
+      li.className = "flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100 animate-fade-in-down";
+      li.innerHTML = `
+         <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
+               <span class="material-symbols-outlined text-sm">check</span>
+            </div>
+            <div>
+               <div class="font-bold text-gray-800">${lot}</div>
+               <div class="text-xs text-gray-500">MC: ${mc} | Qty: ${qty}</div>
+            </div>
+         </div>
+         <span class="text-xs text-gray-400">${new Date().toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'})}</span>
+      `;
+      historyList.prepend(li); // เพิ่มไว้บนสุด
+  }
+
+  submitBtn.onclick = submitData;
+
+  // เริ่มต้นทำงาน
+  // ต้องรอให้ DOM โหลดเสร็จและ User อนุญาต
+  window.addEventListener('load', () => {
+      startCamera();
+  });
+
 </script>
+
+<style>
+    /* ซ่อนบาง UI ของ library ที่ไม่สวย */
+    #reader__dashboard_section_csr span { display: none; } 
+    #reader__dashboard_section_swaplink { text-decoration: none; color: #7c3aed; font-weight: bold; }
+    
+    /* Animation สำหรับ History */
+    @keyframes fadeInDown {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in-down {
+        animation: fadeInDown 0.3s ease-out forwards;
+    }
+</style>
 {% endblock %}

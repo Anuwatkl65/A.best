@@ -5,7 +5,6 @@
 {% block content %}
 <div class="max-w-5xl mx-auto px-4 py-6">
 
-  <!-- breadcrumb + หัวข้อ -->
   <div class="flex items-center justify-between mb-8">
     <div>
       <nav class="text-xs text-gray-400 mb-1">
@@ -27,14 +26,12 @@
     </a>
   </div>
 
-  <!-- การ์ดเลือกช่วงวันที่ (เหมือนรูปแรก) -->
   <div class="mb-10">
     <div class="bg-white rounded-2xl shadow-md max-w-md mx-auto p-6 border border-purple-100">
       <h2 class="text-xl font-bold text-center mb-1">Productivity View</h2>
       <p class="text-xs text-gray-500 text-center mb-6">เลือกช่วงวันที่เพื่อดูข้อมูลผลผลิต</p>
 
       <form method="get" class="space-y-4">
-        <!-- คงค่า department + view ไว้ใน URL -->
         <input type="hidden" name="department" value="{{ department }}">
         <input type="hidden" name="view" value="productivity">
 
@@ -67,18 +64,15 @@
             สร้างรายงาน
           </button>
 
-          <button
-            type="button"
-            onclick="alert('ฟังก์ชัน Export to Excel จะเพิ่มภายหลัง');"
-            class="w-full rounded-xl bg-emerald-600 text-white text-sm font-semibold py-2.5 hover:bg-emerald-700 transition">
-            Export to Excel
-          </button>
+          <a href="{% url 'export_productivity_excel' %}?department={{ department }}&from={{ from_date }}&to={{ to_date }}"
+            class="block w-full text-center rounded-xl bg-emerald-600 text-white text-sm font-semibold py-2.5 hover:bg-emerald-700 transition cursor-pointer">
+            <i class="fas fa-file-excel mr-2"></i> Export to Excel
+          </a>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- ตาราง Productivity (เหมือนรูปที่สอง) -->
   <div class="bg-white rounded-2xl shadow-sm border border-purple-100 overflow-hidden">
     <div class="flex justify-between items-center px-4 py-3 border-b border-purple-50">
       <h2 class="text-sm font-semibold text-gray-800">ตาราง Productivity</h2>
@@ -108,14 +102,20 @@
         <tbody>
           {% if lots %}
             {% for lot in lots %}
-            <tr class="border-t border-purple-50">
-              <td class="px-4 py-2 text-gray-800">{{ lot.lot_no }}</td>
+            <tr class="border-t border-purple-50 hover:bg-gray-50">
+              <td class="px-4 py-2 font-medium text-gray-800">{{ lot.lot_no }}</td>
               <td class="px-4 py-2 text-gray-700">{{ lot.part_no|default:"-" }}</td>
               <td class="px-4 py-2 text-gray-700">{{ lot.customer|default:"-" }}</td>
               <td class="px-4 py-2 text-right text-gray-800">{{ lot.target|intcomma }}</td>
               <td class="px-4 py-2 text-right text-gray-800">{{ lot.produced|intcomma }}</td>
-              <td class="px-4 py-2 text-right text-gray-800">
-                {{ lot.progress }}%
+              <td class="px-4 py-2 text-right">
+                {% if lot.progress >= 100 %}
+                    <span class="text-emerald-600 font-bold">{{ lot.progress }}%</span>
+                {% elif lot.progress > 0 %}
+                    <span class="text-blue-600 font-bold">{{ lot.progress }}%</span>
+                {% else %}
+                    <span class="text-gray-400">{{ lot.progress }}%</span>
+                {% endif %}
               </td>
               <td class="px-4 py-2 text-gray-700">
                 {{ lot.type|default:"Order" }}
@@ -124,8 +124,8 @@
             {% endfor %}
           {% else %}
             <tr>
-              <td colspan="7" class="px-4 py-6 text-center text-gray-400 text-sm">
-                ยังไม่มีข้อมูล Lot ในแผนกนี้
+              <td colspan="7" class="px-4 py-8 text-center text-gray-400 text-sm">
+                ยังไม่มีข้อมูล Lot ในแผนกนี้ หรือในช่วงเวลาที่เลือก
               </td>
             </tr>
           {% endif %}
@@ -137,14 +137,19 @@
 </div>
 
 <script>
-// ถ้าไม่มีค่าจาก backend ให้ default เป็นวันนี้ (เหมือนหน้า Netlify)
+// ถ้าไม่มีค่าจาก backend ให้ default เป็นวันนี้
 (function() {
   const fromInput = document.getElementById("from");
   const toInput = document.getElementById("to");
-  if (!fromInput.value || !toInput.value) {
+  
+  // ตรวจสอบว่า value ว่างหรือไม่ (เผื่อกรณีที่ Django ส่งค่าว่างมา)
+  if (!fromInput.value) {
     const today = new Date().toISOString().slice(0, 10);
-    if (!fromInput.value) fromInput.value = today;
-    if (!toInput.value) toInput.value = today;
+    fromInput.value = today;
+  }
+  if (!toInput.value) {
+    const today = new Date().toISOString().slice(0, 10);
+    toInput.value = today;
   }
 })();
 </script>

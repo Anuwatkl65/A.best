@@ -1,5 +1,6 @@
 from datetime import datetime
 import json
+import openpyxl
 
 from django.db.models import Sum, Q
 from django.db.models.functions import TruncDate, Coalesce
@@ -10,6 +11,8 @@ from django.utils.timezone import now
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.csrf import csrf_exempt
+from openpyxl.utils import get_column_letter
+from django.http import HttpResponse
 
 from .models import Lot, ScanRecord, UserProfile
 
@@ -751,3 +754,94 @@ def dashboard_preform_order(request):
     """
     url = reverse("dashboard")
     return redirect(f"{url}?department=Preform&view=order")
+
+@login_required
+def export_productivity_excel(request):
+    # 1) รับ filter (เหมือนหน้า Dashboard)
+    dept = request.GET.get("department", "Overall")
+    machine_no_filter = request.GET.get("machine_no", "").strip()
+    date_from = request.GET.get("from", "")
+    date_to = request.GET.get("to", "")
+
+    # 2) Query ข้อมูลพื้นฐาน
+    qs = Lot.objects.all()
+
+    # Filter แผนก
+    if dept == "Preform":
+        qs = qs.filter(department__icontains="พรีฟอร์ม")
+    elif dept != "Overall":
+        qs = qs.filter(department__icontains=LABELS.get(dept, dept))
+
+    # Filter เครื่อง
+    if machine_no_filter:
+        qs = qs.filter(machine_no__iexact=machine_no_filter)
+
+    # Filter วันที่
+    if date_from:
+        qs = qs.filter(last_scan__date__gte=date_from)
+    if date_to:
+        qs = qs.filter(last_scan__date__lte=date_to)
+
+    # Annotate ผลรวมการผลิต (ORM ลด Query)
+    qs = _annotate_lots(qs).order_by("lot_no")
+
+    # 3) สร้าง Excel Workbook
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Productivity Report"
+
+    headers = [
+        "Lot No", "Part No", "Customer", "Department",
+        "Machine", "Type", "Target", "Produced",
+        "Progress (%)", "Boxes", "Status", "Last Scan"
+    ]
+    ws.append(headers)
+
+    # 4) เติมข้อมูลทีละแถว
+    for lot in qs:
+        produced = lot.produced_qty or 0
+        target = lot.target or lot.production_quantity or 0
+        progress = (produced / target * 100) if target > 0 else 0
+
+        # กล่อง
+        boxes = int(produced / lot.pieces_per_box) if lot.pieces_per_box else 0
+
+        # สถานะ
+        if produced == 0:
+            status = "Waiting"
+        elif progress >= 100:
+            status = "Finished"
+        else:
+            status = "Running"
+
+        # เวลา Scan
+        last_scan_str = lot.last_scan.strftime("%Y-%m-%d %H:%M") if lot.last_scan else ""
+
+        ws.append([
+            lot.lot_no,
+            lot.part_no,
+            lot.customer,
+            lot.department,
+            lot.machine_no,
+            lot.type or "Order",
+            target,
+            produced,
+            round(progress, 2),
+            boxes,
+            status,
+            last_scan_str,
+        ])
+
+    # 5) ปรับความกว้างคอลัมน์ให้พอดี
+    for col in range(1, len(headers) + 1):
+        ws.column_dimensions[get_column_letter(col)].width = 16
+
+    # 6) ส่งกลับเป็นไฟล์ดาวน์โหลด
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    file_name = f"Productivity_Report_{now().strftime('%Y%m%d')}.xlsx"
+    response["Content-Disposition"] = f'attachment; filename="{file_name}"'
+
+    wb.save(response)
+    return response

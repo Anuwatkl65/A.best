@@ -2,33 +2,87 @@
 {% block title %}เลือกแผนก · Production Tracker{% endblock %}
 
 {% block content %}
-<div class="text-center mb-8">
-  <div class="flex justify-between items-center mb-6">
-    
-    <a href="{% url 'home_menu' %}" class="flex items-center gap-1 text-purple-600 font-medium hover:text-purple-800">
-      <span class="material-symbols-outlined text-lg">home</span><span>Home</span>
-    </a>
-    <h2 class="text-lg md:text-xl font-semibold text-gray-700">เลือกแผนก</h2>
-    <a href="{% url 'home_menu' %}" class="flex items-center gap-1 text-gray-700 hover:text-purple-700 border rounded-full px-3 py-1.5 bg-white shadow-sm">
-      <span class="material-symbols-outlined text-base">arrow_back</span><span>ย้อนกลับ</span>
-    </a>
+<div class="max-w-4xl mx-auto px-4 py-10">
+
+  <div class="text-center mb-10 relative">
+    <div class="absolute left-0 top-1/2 -translate-y-1/2 hidden md:block">
+        <a href="{% url 'home_menu' %}"
+           class="inline-flex items-center gap-1 px-4 py-2 rounded-full bg-white border border-gray-200 text-gray-600 text-sm hover:bg-purple-50 hover:text-purple-700 transition-colors shadow-sm">
+           <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+           หน้าหลัก
+        </a>
+    </div>
+
+    <div class="md:hidden mb-6 flex justify-center">
+        <a href="{% url 'home_menu' %}"
+           class="inline-flex items-center gap-1 px-4 py-2 rounded-full bg-white border border-gray-200 text-gray-600 text-sm hover:bg-purple-50 shadow-sm">
+           <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+           กลับหน้าหลัก
+        </a>
+    </div>
+
+    <h2 class="text-3xl font-extrabold text-gray-900">เลือกแผนก</h2>
+    <p class="text-gray-500 mt-2">เลือก Dashboard ของแผนกที่ต้องการตรวจสอบ</p>
   </div>
 
-  <h2 class="text-2xl md:text-3xl font-extrabold text-gray-800">เลือกแผนก</h2>
-  <p class="text-gray-500">เลือก Dashboard ของแผนกที่ต้องการดู</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+    <a href="{% url 'dashboard_overview' %}" class="dept-card group">
+       <div class="icon-box bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white">
+           <span class="material-symbols-outlined text-4xl">grid_view</span>
+       </div>
+       <div class="flex-1 text-left">
+           <h3 class="text-xl font-bold text-gray-800 group-hover:text-purple-700">Overall : ภาพรวม</h3>
+           <p class="text-sm text-gray-500 mt-1">ดูสรุปข้อมูล Lot ทั้งหมดในโรงงาน (List View)</p>
+       </div>
+       <span class="material-symbols-outlined text-gray-300 group-hover:text-purple-500 text-2xl">chevron_right</span>
+    </a>
+
+    <a href="{% url 'view_select' %}?department=Preform" class="dept-card group">
+       <div class="icon-box bg-cyan-50 text-cyan-600 group-hover:bg-cyan-600 group-hover:text-white">
+           <span class="material-symbols-outlined text-4xl">factory</span>
+       </div>
+       <div class="flex-1 text-left">
+           <h3 class="text-xl font-bold text-gray-800 group-hover:text-cyan-700">Preform : งานเป่า</h3>
+           <p class="text-sm text-gray-500 mt-1">เข้าดูเมนูย่อย: Machine, Order, Productivity</p>
+       </div>
+       <span class="material-symbols-outlined text-gray-300 group-hover:text-cyan-500 text-2xl">chevron_right</span>
+    </a>
+
+  </div>
+
 </div>
 
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
-  <!-- Overall: ไปหน้า Dashboard List ทันที -->
-  <a class="block p-4 menu-card text-gray-800 font-semibold text-center"
-    href="{% url 'dashboard_overview' %}">
-    Overall : ภาพรวม
-  </a>
+<style>
+    /* สไตล์การ์ดแบบเดียวกับ view_select แต่ปรับขนาดนิดหน่อย */
+    .dept-card {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        background: white;
+        border: 2px solid #f3f4f6;
+        border-radius: 1.5rem;
+        padding: 2rem; /* ใหญ่กว่าหน้านั้นนิดนึงเพื่อให้ดูสำคัญ */
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        text-decoration: none;
+    }
+    
+    .dept-card:hover {
+        border-color: currentColor;
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.08);
+    }
 
-  <!-- Preform: ไปหน้าเลือกมุมมอง 4 ตัวเลือก -->
-  <a class="block p-4 menu-card text-gray-800 font-semibold text-center"
-    href="{% url 'view_select' %}?department=Preform">
-    Preform : งานเป่า
-  </a>
-</div>
+    .icon-box {
+        width: 72px;
+        height: 72px;
+        border-radius: 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        flex-shrink: 0;
+    }
+</style>
 {% endblock %}
