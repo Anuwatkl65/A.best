@@ -7,21 +7,22 @@
 
 <div class="max-w-7xl mx-auto px-4 pt-6 pb-10">
 
+  <!-- Breadcrumb + Title -->
   <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
     <div>
       <nav class="flex items-center text-xs text-gray-500 mb-1">
         <a href="{% url 'home_menu' %}" class="hover:text-purple-600 flex items-center gap-1 transition-colors">
-           <span class="material-symbols-outlined text-[16px]">home</span> Home
+          <span class="material-symbols-outlined text-[16px]">home</span> Home
         </a>
         <span class="mx-2">/</span>
         {% if department == 'Overall' %}
-            <a href="{% url 'department_select' %}" class="hover:text-purple-600 transition-colors">
-                Dashboard: {{ department_label }}
-            </a>
+          <a href="{% url 'department_select' %}" class="hover:text-purple-600 transition-colors">
+            Dashboard: {{ department_label }}
+          </a>
         {% else %}
-            <a href="{% url 'view_select' %}?department={{ department }}" class="hover:text-purple-600 transition-colors">
-                Dashboard: {{ department_label }}
-            </a>
+          <a href="{% url 'view_select' %}?department={{ department }}" class="hover:text-purple-600 transition-colors">
+            Dashboard: {{ department_label }}
+          </a>
         {% endif %}
         <span class="mx-2">/</span>
         <span class="font-bold text-purple-600">List View</span>
@@ -32,13 +33,13 @@
     </div>
 
     {% if department == 'Overall' %}
-      <a href="{% url 'department_select' %}" 
+      <a href="{% url 'department_select' %}"
          class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-all shadow-sm">
         <span class="material-symbols-outlined text-[18px]">arrow_back</span>
         กลับไปเลือกแผนก
       </a>
     {% else %}
-      <a href="{% url 'view_select' %}?department={{ department }}" 
+      <a href="{% url 'view_select' %}?department={{ department }}"
          class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-all shadow-sm">
         <span class="material-symbols-outlined text-[18px]">arrow_back</span>
         กลับไปเลือกมุมมอง
@@ -46,8 +47,9 @@
     {% endif %}
   </div>
 
+  <!-- Type filter -->
   <div class="grid grid-cols-3 md:grid-cols-6 gap-2 mb-3">
-    
+
     <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
        class="mini-filter {% if active_type == 'all' %}mini-filter-active ring-2 ring-purple-500{% endif %}">
       <span class="text-xs text-gray-500 font-bold uppercase">All</span>
@@ -86,24 +88,25 @@
 
   </div>
 
+  <!-- Status filter + Search -->
   <div class="flex flex-col md:flex-row gap-3 mb-6">
-    
+
     <div class="flex bg-white rounded-xl border border-gray-200 p-1 shadow-sm flex-shrink-0 overflow-x-auto">
       <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_type != 'all' %}&lot_type={{ active_type }}{% endif %}&status=all"
-         class="status-tab {% if active_status == 'all' %}bg-gray-100 text-gray-900 font-bold{% endif %}">
-         รวม: {{ summary.total_lots }}
+         class="status-tab {% if active_status == 'all' %}bg-purple-300 text-gray-1500 font-bold{% endif %}">
+        รวม: {{ summary.total_lots }}
       </a>
       <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_type != 'all' %}&lot_type={{ active_type }}{% endif %}&status=waiting"
-         class="status-tab text-red-600 {% if active_status == 'waiting' %}bg-red-50 font-bold ring-1 ring-red-200{% endif %}">
-         รอ: {{ summary.waiting }}
+         class="status-tab text-red-600 {% if active_status == 'waiting' %}bg-red-300 font-bold ring-1 ring-red-200{% endif %}">
+        รอ: {{ summary.waiting }}
       </a>
       <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_type != 'all' %}&lot_type={{ active_type }}{% endif %}&status=in_progress"
-         class="status-tab text-orange-600 {% if active_status == 'in_progress' %}bg-orange-50 font-bold ring-1 ring-orange-200{% endif %}">
-         กำลังผลิต: {{ summary.in_progress }}
+         class="status-tab text-orange-600 {% if active_status == 'in_progress' %}bg-orange-300 font-bold ring-1 ring-orange-200{% endif %}">
+        กำลังผลิต: {{ summary.in_progress }}
       </a>
       <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_type != 'all' %}&lot_type={{ active_type }}{% endif %}&status=finished"
-         class="status-tab text-green-600 {% if active_status == 'finished' %}bg-green-50 font-bold ring-1 ring-green-200{% endif %}">
-         เสร็จ: {{ summary.finished }}
+         class="status-tab text-green-600 {% if active_status == 'finished' %}bg-green-300 font-bold ring-1 ring-green-200{% endif %}">
+        เสร็จ: {{ summary.finished }}
       </a>
     </div>
 
@@ -112,23 +115,25 @@
       <input type="hidden" name="view" value="list">
       {% if active_type != 'all' %}<input type="hidden" name="lot_type" value="{{ active_type }}">{% endif %}
       {% if active_status and active_status != 'all' %}<input type="hidden" name="status" value="{{ active_status }}">{% endif %}
-      
+
       <div class="relative h-full">
         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
           <span class="material-symbols-outlined text-[20px]">search</span>
         </span>
-        <input type="text" name="q" value="{{ search_query }}" 
-               placeholder="ค้นหา Lot, Part, Customer..." 
+        <input type="text" name="q" value="{{ search_query }}"
+               placeholder="ค้นหา Lot, Part, Customer..."
                class="w-full h-full min-h-[42px] pl-10 pr-4 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 shadow-sm">
       </div>
     </form>
   </div>
 
+  <!-- Lot cards -->
   <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
     {% if lots %}
       {% for lot in lots %}
         <a href="{% url 'lot_detail' lot.lot_no %}?department={{ department }}" class="compact-card group">
-          
+
+          <!-- Header -->
           <div class="flex justify-between items-start mb-3 border-b border-gray-100 pb-2">
             <div>
               <div class="text-[15px] font-bold text-gray-900 group-hover:text-purple-700 transition-colors">
@@ -144,15 +149,36 @@
             </span>
           </div>
 
+          <!-- Detail section -->
           <div class="grid grid-cols-2 gap-y-1 gap-x-2 text-xs mb-3">
+            <!-- Customer ซ้าย -->
             <div>
               <span class="text-gray-400 block text-[10px]">Customer</span>
-              <span class="font-semibold text-gray-700 truncate block" title="{{ lot.customer }}">{{ lot.customer|default:"-" }}</span>
+              <span class="font-semibold text-gray-700 truncate block" title="{{ lot.customer }}">
+                {{ lot.customer|default:"-" }}
+              </span>
             </div>
-            <div>
+            <!-- Part No ขวาสุด -->
+            <div class="text-right">
               <span class="text-gray-400 block text-[10px]">Part No</span>
-              <span class="font-semibold text-gray-700 truncate block" title="{{ lot.part_no }}">{{ lot.part_no|default:"-" }}</span>
+              <span class="font-semibold text-gray-700 truncate block text-right" title="{{ lot.part_no }}">
+                {{ lot.part_no|default:"-" }}
+              </span>
             </div>
+
+            <div>
+              <span class="text-gray-400 block text-[10px]">Prod. Qty</span>
+              <span class="font-semibold text-gray-700">
+                {{ lot.production_quantity|intcomma }} pcs
+              </span>
+            </div>
+            <div class="text-right">
+              <span class="text-gray-400 block text-[10px]">Target</span>
+              <span class="font-bold text-gray-900">
+                {{ lot.target|intcomma }} pcs
+              </span>
+            </div>
+
             <div>
               <span class="text-gray-400 block text-[10px]">Machine</span>
               <span class="font-medium text-gray-800 bg-gray-100 px-1.5 py-0.5 rounded inline-block">
@@ -160,34 +186,67 @@
               </span>
             </div>
             <div class="text-right">
-              <span class="text-gray-400 block text-[10px]">Target</span>
-              <span class="font-bold text-gray-900">{{ lot.target|intcomma }}</span>
+              <span class="text-gray-400 block text-[10px]">Department</span>
+              <span class="font-semibold text-gray-700">
+                {{ lot.department|default:"-" }}
+              </span>
+            </div>
+
+            <div class="col-span-2">
+              <span class="text-gray-400 block text-[10px]">Description</span>
+              <span class="font-medium text-gray-700 truncate block" title="{{ lot.description }}">
+                {{ lot.description|default:"-" }}
+              </span>
+            </div>
+
+            <div class="col-span-2">
+              <span class="text-gray-400 block text-[10px]">จำนวนบรรจุต่อกล่อง</span>
+              <span class="font-semibold text-gray-700">
+                {{ lot.pieces_per_box|intcomma }} pcs / กล่อง
+              </span>
             </div>
           </div>
 
+          <!-- Progress -->
           <div class="mb-1">
             <div class="flex justify-between items-end mb-1">
               <span class="text-[10px] font-semibold text-gray-500">Produced</span>
               <span class="text-xs font-bold text-purple-700">
-                {{ lot.produced|intcomma }} <span class="text-gray-400 font-normal">/ {{ lot.target|intcomma }}</span>
+                {{ lot.produced|intcomma }}
+                <span class="text-gray-400 font-normal">/ {{ lot.target|intcomma }}</span>
               </span>
             </div>
             <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
               <div class="h-full rounded-full transition-all duration-500
-                          {% if lot.progress >= 100 %}bg-green-500{% elif lot.produced == 0 %}bg-gray-300{% else %}bg-purple-500{% endif %}"
+                          {% if lot.progress >= 100 %}
+                            bg-green-500
+                          {% elif lot.progress >= 80 %}
+                            bg-purple-500
+                          {% elif lot.progress >= 50 %}
+                            bg-yellow-400
+                          {% elif lot.progress >= 20 %}
+                            bg-orange-400
+                          {% elif lot.progress > 0 %}
+                            bg-red-500
+                          {% else %}
+                            bg-gray-300
+                          {% endif %}"
                    style="width: {{ lot.progress }}%;"></div>
             </div>
           </div>
-          
+
+          <!-- Footer -->
           <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-50">
-             <div class="text-[10px] text-gray-400">
-               {% if lot.boxes %}
-                 <span class="bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded font-medium">📦 {{ lot.boxes }} กล่อง</span>
-               {% endif %}
-             </div>
-             <div class="text-[10px] text-gray-400 text-right">
-                Last: {{ lot.last_scan|date:"H:i"|default:"-" }}
-             </div>
+            <div class="text-[10px] text-gray-400">
+              {% if lot.boxes %}
+                <span class="bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded font-medium">
+                  📦 {{ lot.boxes }} กล่อง
+                </span>
+              {% endif %}
+            </div>
+            <div class="text-[10px] text-gray-400 text-right">
+              Last: {{ lot.last_scan|date:"H:i"|default:"-" }}
+            </div>
           </div>
 
         </a>
@@ -249,7 +308,8 @@
   }
   .compact-card:hover {
     border-color: #a78bfa;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+                0 4px 6px -2px rgba(0, 0, 0, 0.05);
     transform: translateY(-2px);
   }
 

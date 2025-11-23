@@ -1,0 +1,119 @@
+{% extends "production/base.html" %}
+
+{% block title %}Productivity View · {{ department_label|default:department }}{% endblock %}
+
+{% block content %}
+
+<div class="max-w-4xl mx-auto px-4 pt-8 pb-16">
+
+  <!-- แถวบน: breadcrumb + ปุ่มย้อนกลับ -->
+  <div class="flex items-center justify-between mb-8">
+
+    <!-- breadcrumb -->
+    <nav class="flex items-center text-xs text-gray-500 gap-1">
+      <a href="{% url 'home_menu' %}" class="hover:text-purple-600 flex items-center gap-1">
+        <span class="material-symbols-outlined text-[16px]">home</span>
+        Home
+      </a>
+      <span>/</span>
+      <a href="{% url 'view_select' %}?department={{ department }}" class="hover:text-purple-600">
+        Productivity – {{ department_label|default:department }}
+      </a>
+      <span>/</span>
+      <span class="font-semibold text-purple-600">เลือกช่วงวันที่</span>
+    </nav>
+
+    <!-- ปุ่มย้อนกลับ (เวอร์ชันปรับใหม่) -->
+    <a href="{% url 'view_select' %}?department={{ department }}"
+       class="inline-flex items-center gap-2 px-4 py-2.5
+              bg-white border border-gray-200 rounded-full
+              text-sm font-semibold text-gray-700
+              hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300
+              transition-all shadow-sm">
+      <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+      กลับไปเลือกมุมมอง
+    </a>
+
+  </div>
+
+  <!-- หัวข้อหลัก -->
+  <div class="text-center mb-8">
+    <h1 class="text-2xl font-extrabold text-gray-900">Productivity View</h1>
+    <p class="text-sm text-gray-500 mt-1">
+      เลือกช่วงวันที่เพื่อดูข้อมูลผลผลิตในระบบ
+    </p>
+  </div>
+
+  <!-- การ์ดฟอร์ม -->
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+
+    <!-- ฟอร์มเลือกช่วงวันที่ (สร้างรายงาน) -->
+    <form method="post" class="space-y-5 mb-6">
+      {% csrf_token %}
+      <input type="hidden" name="department" value="{{ department }}">
+
+      <!-- วันที่เริ่มต้น -->
+      <div>
+        <label for="from_date" class="block text-sm font-semibold text-gray-700 mb-1">
+          วันที่เริ่มต้น
+        </label>
+        <div class="relative">
+          <input id="from_date" name="from" type="date"
+                 value="{{ from_date }}"
+                 class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm
+                        focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+          <span class="material-symbols-outlined text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 text-[20px]">
+            event
+          </span>
+        </div>
+      </div>
+
+      <!-- วันที่สิ้นสุด -->
+      <div>
+        <label for="to_date" class="block text-sm font-semibold text-gray-700 mb-1">
+          วันที่สิ้นสุด
+        </label>
+        <div class="relative">
+          <input id="to_date" name="to" type="date"
+                 value="{{ to_date }}"
+                 class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm
+                        focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+          <span class="material-symbols-outlined text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 text-[20px]">
+            event
+          </span>
+        </div>
+      </div>
+
+      <!-- ปุ่มสร้างรายงาน -->
+      <button type="submit"
+              class="w-full mt-2 inline-flex items-center justify-center px-4 py-2.5
+                     rounded-xl bg-purple-600 text-white text-sm font-semibold
+                     shadow-sm hover:bg-purple-700 transition-colors">
+        สร้างรายงาน
+      </button>
+    </form>
+
+    <!-- ปุ่ม Export to Excel -->
+    <form method="get"
+          action="{% url 'export_productivity_excel' %}"
+          class="space-y-3">
+      <input type="hidden" name="department" value="{{ department }}">
+      <input type="hidden" name="from" value="{{ from_date }}">
+      <input type="hidden" name="to" value="{{ to_date }}">
+
+      <button type="submit"
+              class="w-full inline-flex items-center justify-center px-4 py-2.5
+                     rounded-xl bg-emerald-600 text-white text-sm font-semibold
+                     shadow-sm hover:bg-emerald-700 transition-colors">
+        Export to Excel
+      </button>
+
+      <p class="text-[11px] text-center text-gray-400">
+        ใช้ช่วงวันที่เดียวกันในการดาวน์โหลดรายงาน Excel
+      </p>
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

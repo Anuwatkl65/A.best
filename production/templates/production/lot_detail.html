@@ -12,7 +12,7 @@
       <a href="{% url 'home_menu' %}" class="hover:text-purple-600">Home</a>
       <span>/</span>
       <a href="{% url 'dashboard' %}?department={{ department }}&view=list"
-         class="hover:text-purple-600">
+        class="hover:text-purple-600">
         Dashboard: {{ department_label }}
       </a>
       <span>/</span>
@@ -20,7 +20,7 @@
     </div>
 
     <a href="{% url 'dashboard' %}?department={{ department }}&view=list"
-       class="px-4 py-2 rounded-full bg-white text-sm border border-purple-300 shadow-sm hover:bg-purple-50">
+      class="px-4 py-2 rounded-full bg-white text-sm border border-purple-300 shadow-sm hover:bg-purple-50">
       ← กลับไป List View
     </a>
   </div>
@@ -63,7 +63,7 @@
     <div class="mt-4">
       <div class="w-full h-4 rounded-full bg-gray-200 overflow-hidden">
         <div class="h-4 rounded-full bg-lime-400"
-             style="width: {{ progress }}%;"></div>
+            style="width: {{ progress }}%;"></div>
       </div>
       <div class="flex justify-between text-xs text-gray-500 mt-1.5">
         <span>ความคืบหน้า: <span class="font-semibold">{{ progress }}%</span></span>
@@ -88,13 +88,33 @@
     </div>
   </div>
 
-  <!-- กราฟปริมาณการสแกนต่อวัน (Line Chart) -->
+  <!-- กราฟปริมาณการสแกน -->
+  <!-- กราฟปริมาณการสแกน -->
   <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 mb-6">
     <div class="flex items-center justify-between mb-3">
-      <h2 class="text-lg font-semibold text-gray-800">กราฟปริมาณการสแกนต่อวัน</h2>
-      <span class="text-xs text-gray-400">
-        (เส้นน้ำเงิน = ต่อวัน, เส้นแดง = สะสม)
-      </span>
+      <div>
+        <h2 class="text-lg font-semibold text-gray-800">
+          กราฟปริมาณการสแกน
+          {% if agg == "hour" %}<span class="text-sm text-gray-500">(รายชั่วโมง)</span>{% endif %}
+          {% if agg == "day" %}<span class="text-sm text-gray-500">(รายวัน)</span>{% endif %}
+          {% if agg == "month" %}<span class="text-sm text-gray-500">(รายเดือน)</span>{% endif %}
+        </h2>
+        <span class="text-xs text-gray-400">
+          (น้ำเงิน = ปริมาณต่อช่วงเวลา, ชมพู = สะสม)
+        </span>
+      </div>
+
+      <!-- dropdown เลือกมุมมองกราฟ -->
+        <input type="hidden" name="department" value="{{ department }}">
+
+        <label for="agg" class="text-gray-500">มุมมอง:</label>
+        <select id="agg" name="agg"
+                class="border border-gray-300 rounded-full px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500"
+                onchange="this.form.submit()">
+          <option value="hour" {% if agg == "hour" %}selected{% endif %}>รายชั่วโมง</option>
+          <option value="day" {% if agg == "day" %}selected{% endif %}>รายวัน</option>
+          <option value="month" {% if agg == "month" %}selected{% endif %}>รายเดือน</option>
+        </select>
     </div>
 
     {% if chart_labels and chart_daily %}
@@ -108,13 +128,70 @@
     {% endif %}
   </div>
 
-  <!-- Log การสแกน -->
+
+  <!-- Log การสแกน + Filter / Sort -->
   <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
-    <div class="flex items-center justify-between mb-3">
-      <h2 class="text-lg font-semibold text-gray-800">ประวัติการสแกน</h2>
-      <span class="text-xs text-gray-400">
-        ทั้งหมด {{ scan_logs|length }} รายการ
-      </span>
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
+      <div>
+        <h2 class="text-lg font-semibold text-gray-800">ประวัติการสแกน</h2>
+        <span class="text-xs text-gray-400">
+          ทั้งหมด {{ scan_logs|length }} รายการ
+        </span>
+      </div>
+
+ <!-- Log การสแกน + Filter / Sort -->
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
+      <div>
+        <h2 class="text-lg font-semibold text-gray-800">ประวัติการสแกน</h2>
+        <span id="scan-count" class="text-xs text-gray-400">
+          ทั้งหมด {{ scan_logs|length }} รายการ
+        </span>
+      </div>
+
+      <!-- 🔥 เปลี่ยนจาก form เป็น div ธรรมดา -->
+      <div class="flex flex-wrap items-center gap-2 text-xs md:justify-end" id="scan-filter-bar">
+        <!-- sort -->
+        <label for="scan_order" class="text-gray-500">เรียงตาม:</label>
+        <select id="scan_order"
+                class="border border-gray-300 rounded-full px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500">
+          <option value="newest" {% if scan_order == 'newest' %}selected{% endif %}>ใหม่สุดก่อน</option>
+          <option value="oldest" {% if scan_order == 'oldest' %}selected{% endif %}>เก่าสุดก่อน</option>
+          <option value="qty_desc" {% if scan_order == 'qty_desc' %}selected{% endif %}>ปริมาณมาก → น้อย</option>
+          <option value="qty_asc" {% if scan_order == 'qty_asc' %}selected{% endif %}>ปริมาณน้อย → มาก</option>
+        </select>
+
+        <!-- filter machine -->
+        <label for="scan_machine" class="text-gray-500">เครื่อง:</label>
+        <select id="scan_machine"
+                class="border border-gray-300 rounded-full px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500">
+          <option value="all" {% if scan_machine == 'all' %}selected{% endif %}>ทุกเครื่อง</option>
+          {% for m in scan_machines %}
+            <option value="{{ m }}" {% if scan_machine == m %}selected{% endif %}>{{ m }}</option>
+          {% endfor %}
+        </select>
+
+        <!-- filter date range -->
+        <label for="scan_from" class="text-gray-500">ตั้งแต่:</label>
+        <input type="date" id="scan_from"
+               value="{{ scan_from }}"
+               class="border border-gray-300 rounded-full px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500">
+
+        <label for="scan_to" class="text-gray-500">ถึง:</label>
+        <input type="date" id="scan_to"
+               value="{{ scan_to }}"
+               class="border border-gray-300 rounded-full px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500">
+
+        <button type="button" id="scan-filter-btn"
+                class="px-3 py-1.5 rounded-full bg-purple-600 text-white font-medium hover:bg-purple-700">
+          กรอง
+        </button>
+
+        <button type="button" id="scan-clear-btn"
+                class="px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200">
+          ล้าง
+        </button>
+      </div>
     </div>
 
     {% if scan_logs %}
@@ -127,19 +204,22 @@
               <th class="px-3 py-2 text-right font-medium">จำนวน (pcs)</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100">
+          <tbody id="scan-logs-body" class="divide-y divide-gray-100">
             {% for s in scan_logs %}
-            <tr class="hover:bg-gray-50">
-              <td class="px-3 py-2">
-                {{ s.scanned_at|date:"d/m/Y H:i:s" }}
-              </td>
-              <td class="px-3 py-2">
-                {{ s.machine_no|default:"-" }}
-              </td>
-              <td class="px-3 py-2 text-right">
-                {{ s.qty|intcomma }}
-              </td>
-            </tr>
+              <tr class="hover:bg-gray-50"
+                  data-ts="{{ s.scanned_at|date:'c' }}"
+                  data-machine="{{ s.machine_no|default_if_none:'' }}"
+                  data-qty="{{ s.qty }}">
+                <td class="px-3 py-2">
+                  {{ s.scanned_at|date:"d/m/Y H:i:s" }}
+                </td>
+                <td class="px-3 py-2">
+                  {{ s.machine_no|default:"-" }}
+                </td>
+                <td class="px-3 py-2 text-right">
+                  {{ s.qty|intcomma }}
+                </td>
+              </tr>
             {% endfor %}
           </tbody>
         </table>
@@ -147,7 +227,6 @@
     {% else %}
       <p class="text-sm text-gray-400">ยังไม่มีข้อมูลการสแกนสำหรับ Lot นี้</p>
     {% endif %}
-  </div>
 
 </div>
 {% endblock %}
@@ -158,99 +237,246 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-(function() {
-  const labels = {{ chart_labels|default:"[]"|safe }};
-  const daily = {{ chart_daily|default:"[]"|safe }};
-  const cumsum = {{ chart_cumsum|default:"[]"|safe }};
+(function () {
+  const canvas = document.getElementById("lotScanChart");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
 
-  if (!labels.length) return;
+  let chart = null;
 
-  const ctx = document.getElementById("lotScanChart").getContext("2d");
+  // ฟังก์ชันโหลดข้อมูลจาก backend แล้วอัปเดตกราฟ
+  async function loadChart(agg) {
+    const department = "{{ department }}";
+    const lotNo = "{{ lot.lot_no }}";
 
-  new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: "ปริมาณต่อวัน (pcs)",
-          data: daily,
-          borderColor: "rgba(54, 162, 235, 1)",
-          backgroundColor: "rgba(54, 162, 235, 0.2)",
-          tension: 0.35,
-          borderWidth: 3,
-          pointRadius: 4,
-          pointBackgroundColor: "rgba(54, 162, 235, 1)",
-          fill: true,
-          yAxisID: "y",
-        },
-        {
-          label: "สะสม (pcs)",
-          data: cumsum,
-          borderColor: "rgba(255, 99, 132, 1)",
-          backgroundColor: "rgba(255, 99, 132, 0.15)",
-          tension: 0.25,
-          borderWidth: 2.5,
-          pointRadius: 3,
-          pointBackgroundColor: "rgba(255, 99, 132, 1)",
-          fill: false,
-          yAxisID: "y1",
-        }
-      ]
-    },
+    const url = new URL(
+      "{% url 'lot_chart_data' lot.lot_no %}",
+      window.location.origin
+    );
+    url.searchParams.set("agg", agg);
+    url.searchParams.set("department", department);
 
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
+    const res = await fetch(url);
+    const data = await res.json();
 
-      interaction: {
-        mode: "index",
-        intersect: false,
-      },
+    const labels = data.labels || [];
+    const daily = data.daily || [];
+    const cumulative = data.cumulative || [];
 
-      scales: {
-        y: {
-          position: "left",
-          beginAtZero: true,
-          grid: {
-            color: "rgba(200, 200, 200, 0.3)",
-          },
-          ticks: {
-            callback: function(value) {
-              return value.toLocaleString();
-            }
-          }
-        },
-        y1: {
-          position: "right",
-          beginAtZero: true,
-          grid: { drawOnChartArea: false },
-          ticks: {
-            callback: function(value) {
-              return value.toLocaleString();
-            }
-          }
-        }
-      },
+    if (!labels.length) return;
 
-      plugins: {
-        legend: {
-          labels: {
-            boxWidth: 12,
-            boxHeight: 12,
-            usePointStyle: true,
-          }
-        },
-        tooltip: {
-          callbacks: {
-            label: function(ctx) {
-              return ctx.dataset.label + ": " + ctx.raw.toLocaleString() + " pcs";
-            }
-          }
-        }
-      }
+    if (chart) {
+      chart.destroy();
     }
-  });
+
+    chart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            type: "bar",
+            label: "ปริมาณต่อช่วงเวลา (pcs)",
+            data: daily,
+            backgroundColor: "rgba(59, 130, 246, 0.5)",
+            borderColor: "rgba(59, 130, 246, 1)",
+            borderWidth: 1,
+            yAxisID: "y",
+          },
+          {
+            type: "line",
+            label: "สะสม (pcs)",
+            data: cumulative,
+            borderColor: "rgba(236, 72, 153, 1)",
+            backgroundColor: "rgba(236, 72, 153, 0.15)",
+            borderWidth: 2,
+            pointRadius: 3,
+            pointBackgroundColor: "rgba(236, 72, 153, 1)",
+            tension: 0.25,
+            fill: false,
+            yAxisID: "y1",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        // 👇 คลิก drill-down โดยไม่รีหน้า
+        onClick: function (evt, elements) {
+          if (!elements || !elements.length) return;
+
+          let currentAgg = aggSelector.value || "hour";
+          let nextAgg = null;
+
+          if (currentAgg === "month") nextAgg = "day";
+          else if (currentAgg === "day") nextAgg = "hour";
+          else return;
+
+          aggSelector.value = nextAgg;
+          loadChart(nextAgg);
+        },
+        scales: {
+          y: {
+            position: "left",
+            beginAtZero: true,
+            grid: { color: "rgba(148, 163, 184, 0.3)" },
+            ticks: {
+              callback: (value) => {
+                try { return value.toLocaleString(); }
+                catch (e) { return value; }
+              },
+            },
+          },
+          y1: {
+            position: "right",
+            beginAtZero: true,
+            grid: { drawOnChartArea: false },
+            ticks: {
+              callback: (value) => {
+                try { return value.toLocaleString(); }
+                catch (e) { return value; }
+              },
+            },
+          },
+          x: {
+            ticks: { maxRotation: 45, minRotation: 0 },
+          },
+        },
+        plugins: {
+          legend: {
+            labels: { usePointStyle: true, boxWidth: 10 },
+          },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) {
+                const raw = ctx.raw;
+                const formatted =
+                  raw && raw.toLocaleString ? raw.toLocaleString() : raw;
+                return ctx.dataset.label + ": " + formatted + " pcs";
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  // ผูกกับ dropdown มุมมอง
+  const aggSelector = document.getElementById("agg");
+  if (aggSelector) {
+    aggSelector.addEventListener("change", function () {
+      const agg = this.value || "hour";
+      loadChart(agg);
+    });
+  }
+
+  // โหลดครั้งแรก ตามค่า agg ปัจจุบัน
+  const initialAgg = "{{ agg|default:'hour' }}";
+  if (aggSelector) {
+    aggSelector.value = initialAgg;
+  }
+  loadChart(initialAgg);
 })();
 </script>
+
+<script>
+(function () {
+  const tbody = document.getElementById("scan-logs-body");
+  if (!tbody) return;
+
+  const rows = Array.from(tbody.querySelectorAll("tr"));
+  const originalRows = rows.slice();  // เก็บลำดับเดิมไว้สำหรับปุ่ม "ล้าง"
+
+  const orderSel   = document.getElementById("scan_order");
+  const machineSel = document.getElementById("scan_machine");
+  const fromInput  = document.getElementById("scan_from");
+  const toInput    = document.getElementById("scan_to");
+  const filterBtn  = document.getElementById("scan-filter-btn");
+  const clearBtn   = document.getElementById("scan-clear-btn");
+  const countSpan  = document.getElementById("scan-count");
+
+  function applyFilters() {
+    let filtered = rows.slice();
+
+    // 1) กรองตามเครื่อง
+    const machine = machineSel ? machineSel.value : "all";
+    if (machine && machine !== "all") {
+      filtered = filtered.filter(tr => (tr.dataset.machine || "") === machine);
+    }
+
+    // 2) กรองตามวันที่
+    const fromVal = fromInput && fromInput.value;
+    const toVal   = toInput && toInput.value;
+
+    if (fromVal) {
+      const fromTime = new Date(fromVal + "T00:00:00").getTime();
+      filtered = filtered.filter(tr => {
+        const t = new Date(tr.dataset.ts).getTime();
+        return t >= fromTime;
+      });
+    }
+    if (toVal) {
+      const toTime = new Date(toVal + "T23:59:59").getTime();
+      filtered = filtered.filter(tr => {
+        const t = new Date(tr.dataset.ts).getTime();
+        return t <= toTime;
+      });
+    }
+
+    // 3) เรียงลำดับ
+    const order = orderSel ? orderSel.value : "newest";
+    filtered.sort((a, b) => {
+      const ta = new Date(a.dataset.ts).getTime();
+      const tb = new Date(b.dataset.ts).getTime();
+      const qa = parseFloat(a.dataset.qty || "0");
+      const qb = parseFloat(b.dataset.qty || "0");
+
+      if (order === "oldest") {
+        return ta - tb;              // เก่าสุดก่อน
+      }
+      if (order === "qty_desc") {
+        if (qb !== qa) return qb - qa; // ปริมาณมาก → น้อย
+        return tb - ta;
+      }
+      if (order === "qty_asc") {
+        if (qa !== qb) return qa - qb; // ปริมาณน้อย → มาก
+        return ta - tb;
+      }
+      // default: newest
+      return tb - ta;                // ใหม่สุดก่อน
+    });
+
+    // 4) ใส่แถวใหม่กลับเข้า tbody
+    tbody.innerHTML = "";
+    filtered.forEach(tr => tbody.appendChild(tr));
+
+    if (countSpan) {
+      countSpan.textContent = `ทั้งหมด ${filtered.length} รายการ`;
+    }
+  }
+
+  function clearFilters() {
+    if (orderSel)   orderSel.value = "newest";
+    if (machineSel) machineSel.value = "all";
+    if (fromInput)  fromInput.value = "";
+    if (toInput)    toInput.value = "";
+
+    tbody.innerHTML = "";
+    originalRows.forEach(tr => tbody.appendChild(tr));
+
+    if (countSpan) {
+      countSpan.textContent = `ทั้งหมด ${originalRows.length} รายการ`;
+    }
+  }
+
+  if (filterBtn) filterBtn.addEventListener("click", applyFilters);
+  if (clearBtn)  clearBtn.addEventListener("click", clearFilters);
+
+  // ใช้ on-change ให้มันกรองทันทีโดยไม่ต้องกดปุ่มก็ได้
+  if (orderSel)   orderSel.addEventListener("change", applyFilters);
+  if (machineSel) machineSel.addEventListener("change", applyFilters);
+})();
+</script>
+
 {% endblock %}

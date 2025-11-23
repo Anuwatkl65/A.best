@@ -1,0 +1,251 @@
+{% extends "production/base.html" %}
+{% load humanize %}
+
+{% block title %}Productivity · {{ department_label }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 pt-6 pb-10">
+
+  <!-- Breadcrumb -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+    <div>
+      <nav class="flex items-center text-xs text-gray-500 mb-1">
+        <a href="{% url 'home_menu' %}" class="hover:text-purple-600 flex items-center gap-1 transition-colors">
+          <span class="material-symbols-outlined text-[16px]">home</span> Home
+        </a>
+        <span class="mx-2">/</span>
+        <span class="font-bold text-purple-600">Productivity ({{ department_label }})</span>
+      </nav>
+      <h1 class="text-2xl font-extrabold text-gray-900">
+        Productivity – ภาพรวมผลผลิต {{ department_label }}
+      </h1>
+      <p class="text-xs text-gray-500 mt-1">
+        สรุปยอดผลิตตามเครื่อง ในช่วงวันที่ที่เลือก
+      </p>
+    </div>
+
+    <!-- Date range filter -->
+    <form method="get" class="bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm flex flex-col md:flex-row items-center gap-3">
+      <input type="hidden" name="department" value="{{ department }}">
+
+      <div class="flex items-center gap-2 text-xs">
+        <label for="from" class="text-gray-500 whitespace-nowrap">จากวันที่</label>
+        <input type="date" id="from" name="from"
+               value="{{ from_date }}"
+               class="border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500">
+      </div>
+
+      <div class="flex items-center gap-2 text-xs">
+        <label for="to" class="text-gray-500 whitespace-nowrap">ถึง</label>
+        <input type="date" id="to" name="to"
+               value="{{ to_date }}"
+               class="border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500">
+      </div>
+
+      <button type="submit"
+              class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-purple-600 text-white text-xs font-semibold hover:bg-purple-700">
+        <span class="material-symbols-outlined text-[16px]">refresh</span>
+        อัปเดตรายงาน
+      </button>
+    </form>
+  </div>
+
+  <!-- Summary + Chart -->
+  <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+
+    <!-- กล่องสรุป -->
+    <div class="lg:col-span-1 space-y-3">
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+        <div class="text-xs text-gray-500 mb-1">ช่วงวันที่</div>
+        <div class="text-sm font-semibold text-gray-800">
+          {{ from_date|date:"d/m/Y" }} - {{ to_date|date:"d/m/Y" }}
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+        <div class="flex justify-between items-center mb-1">
+          <span class="text-xs text-gray-500">จำนวนเครื่องที่มีข้อมูล</span>
+          <span class="text-sm font-bold text-gray-800">
+            {{ machine_rows|length }} เครื่อง
+          </span>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+        <div class="flex justify-between items-center mb-1">
+          <span class="text-xs text-gray-500">ยอดผลิตรวมช่วงนี้</span>
+          <span class="text-sm font-bold text-purple-700">
+            {{ grand_total|intcomma }} pcs
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- กราฟ -->
+    <div class="lg:col-span-3 bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+      <div class="flex justify-between items-center mb-2">
+        <h2 class="text-sm font-semibold text-gray-800">กราฟยอดผลิตตามเครื่อง</h2>
+        <span class="text-[11px] text-gray-400">
+          แสดงยอดรวมของแต่ละเครื่องในช่วงวันที่ที่เลือก
+        </span>
+      </div>
+
+      {% if chart_labels %}
+        <div class="w-full h-72">
+          <canvas id="prodChart"></canvas>
+        </div>
+      {% else %}
+        <p class="text-sm text-gray-400 text-center py-10">
+          ยังไม่พบข้อมูลการผลิตในช่วงวันที่ที่เลือก
+        </p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ตาราง Productivity -->
+  <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+    <div class="flex justify-between items-center mb-3">
+      <h2 class="text-sm font-semibold text-gray-800">
+        ตาราง Productivity รายเครื่อง / รายวัน
+      </h2>
+      <span class="text-[11px] text-gray-400">
+        หน่วย: pcs
+      </span>
+    </div>
+
+    {% if machine_rows %}
+      <div class="overflow-x-auto text-xs">
+        <table class="min-w-full border border-gray-100">
+          <thead class="bg-gray-50 text-gray-600">
+            <tr>
+              <th class="px-3 py-2 text-left border-b border-gray-100">MACHINE NO.</th>
+              <th class="px-3 py-2 text-left border-b border-gray-100">MACHINE NAME</th>
+              {% for d in date_list %}
+                <th class="px-3 py-2 text-right border-b border-gray-100">
+                  {{ d|date:"d/m" }}
+                </th>
+              {% endfor %}
+              <th class="px-3 py-2 text-right border-b border-gray-100 bg-purple-50 text-purple-700">
+                TOTAL
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            {% for row in machine_rows %}
+              <tr class="hover:bg-gray-50">
+                <td class="px-3 py-2 border-b border-gray-50 font-semibold text-gray-800">
+                  {{ row.machine_no }}
+                </td>
+                <td class="px-3 py-2 border-b border-gray-50 text-gray-700">
+                  {{ row.machine_name|default:"-" }}
+                </td>
+                {% for val in row.daily %}
+                  <td class="px-3 py-2 border-b border-gray-50 text-right">
+                    {% if val > 0 %}
+                      {{ val|intcomma }}
+                    {% else %}
+                      <span class="text-gray-300">-</span>
+                    {% endif %}
+                  </td>
+                {% endfor %}
+                <td class="px-3 py-2 border-b border-gray-50 text-right font-bold text-purple-700 bg-purple-50">
+                  {{ row.total|intcomma }}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="bg-gray-50 text-gray-700">
+            <tr>
+              <th class="px-3 py-2 text-left border-t border-gray-200" colspan="2">
+                รวมต่อวัน
+              </th>
+              {% for s in total_per_day %}
+                <th class="px-3 py-2 text-right border-t border-gray-200">
+                  {% if s > 0 %}
+                    {{ s|intcomma }}
+                  {% else %}
+                    <span class="text-gray-300">-</span>
+                  {% endif %}
+                </th>
+              {% endfor %}
+              <th class="px-3 py-2 text-right border-t border-gray-200 bg-purple-100 text-purple-800">
+                {{ grand_total|intcomma }}
+              </th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-sm text-gray-400 text-center py-8">
+        ยังไม่พบข้อมูลการสแกนในช่วงวันที่ที่เลือก
+      </p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+(function () {
+  const labels = {{ chart_labels|default:"[]"|safe }};
+  const values = {{ chart_data|default:"[]"|safe }};
+
+  if (!labels.length) return;
+
+  const canvas = document.getElementById("prodChart");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+
+  new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "ยอดผลิตรวม (pcs)",
+          data: values,
+          backgroundColor: "rgba(129, 140, 248, 0.6)",   // ม่วง
+          borderColor: "rgba(79, 70, 229, 1)",
+          borderWidth: 1,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: (v) => {
+              try { return v.toLocaleString(); }
+              catch(e) { return v; }
+            }
+          },
+          grid: { color: "rgba(148,163,184,0.3)" },
+        },
+        x: {
+          grid: { display: false },
+        },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const raw = ctx.raw;
+              const v = raw && raw.toLocaleString ? raw.toLocaleString() : raw;
+              return "ยอดผลิตรวม: " + v + " pcs";
+            },
+          },
+        },
+      },
+    },
+  });
+})();
+</script>
+{% endblock %}
