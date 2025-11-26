@@ -6,15 +6,21 @@
 {% block content %}
 <div class="max-w-6xl mx-auto px-4 pt-6 pb-10">
 
-  <!-- Breadcrumb -->
-  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+  {# ====== Row 1 : breadcrumb + title + ปุ่มย้อนกลับ ขวาบน ====== #}
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3">
     <div>
       <nav class="flex items-center text-xs text-gray-500 mb-1">
-        <a href="{% url 'home_menu' %}" class="hover:text-purple-600 flex items-center gap-1 transition-colors">
+        <a href="{% url 'home_menu' %}"
+           class="hover:text-purple-600 flex items-center gap-1 transition-colors">
           <span class="material-symbols-outlined text-[16px]">home</span> Home
         </a>
         <span class="mx-2">/</span>
-        <span class="font-bold text-purple-600">Productivity ({{ department_label }})</span>
+        <a href="{% url 'productivity_form' %}?department={{ department }}"
+           class="hover:text-purple-600">
+          Productivity – {{ department_label }}
+        </a>
+        <span class="mx-2">/</span>
+        <span class="font-bold text-purple-600">รายงานสรุปผลผลิต</span>
       </nav>
       <h1 class="text-2xl font-extrabold text-gray-900">
         Productivity – ภาพรวมผลผลิต {{ department_label }}
@@ -24,8 +30,20 @@
       </p>
     </div>
 
-    <!-- Date range filter -->
-    <form method="get" class="bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm flex flex-col md:flex-row items-center gap-3">
+    <!-- ปุ่มย้อนกลับไป Productivity View -->
+    <div class="flex justify-end">
+      <a href="{% url 'productivity_form' %}?department={{ department }}"
+         class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-100 text-gray-700 text-xs font-semibold hover:bg-gray-200 border border-gray-200">
+        <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+        ย้อนกลับ
+      </a>
+    </div>
+  </div>
+
+  {# ====== Row 2 : ฟิลเตอร์วันที่ (ปฏิทิน) ด้านล่างขวา ====== #}
+  <div class="flex justify-end mb-6">
+    <form method="get"
+          class="bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm flex flex-col md:flex-row items-center gap-3">
       <input type="hidden" name="department" value="{{ department }}">
 
       <div class="flex items-center gap-2 text-xs">
@@ -50,7 +68,7 @@
     </form>
   </div>
 
-  <!-- Summary + Chart -->
+  <!-- === Summary + Chart === -->
   <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
 
     <!-- กล่องสรุป -->
@@ -58,7 +76,7 @@
       <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
         <div class="text-xs text-gray-500 mb-1">ช่วงวันที่</div>
         <div class="text-sm font-semibold text-gray-800">
-          {{ from_date|date:"d/m/Y" }} - {{ to_date|date:"d/m/Y" }}
+          {{ from_date }} - {{ to_date }}
         </div>
       </div>
 
@@ -81,7 +99,7 @@
       </div>
     </div>
 
-    <!-- กราฟ -->
+    <!-- กราฟตามเครื่อง -->
     <div class="lg:col-span-3 bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
       <div class="flex justify-between items-center mb-2">
         <h2 class="text-sm font-semibold text-gray-800">กราฟยอดผลิตตามเครื่อง</h2>
@@ -102,8 +120,9 @@
     </div>
   </div>
 
-  <!-- ตาราง Productivity -->
+  <!-- === ตาราง Productivity + sticky columns/rows === -->
   <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+
     <div class="flex justify-between items-center mb-3">
       <h2 class="text-sm font-semibold text-gray-800">
         ตาราง Productivity รายเครื่อง / รายวัน
@@ -114,12 +133,72 @@
     </div>
 
     {% if machine_rows %}
-      <div class="overflow-x-auto text-xs">
-        <table class="min-w-full border border-gray-100">
+      <style>
+        /* ===== sticky table style (ล็อก 2 คอลัมน์ + หัว/ท้ายตาราง) ===== */
+        .prod-table-wrapper {
+          position: relative;
+          max-width: 100%;
+          overflow: auto;
+        }
+
+        /* กำหนดความกว้างคงที่ของคอลัมน์ 1–2 ให้ตรงกันทุกที่ */
+        .prod-col-1 {
+          min-width: 90px;
+          width: 90px;
+        }
+        .prod-col-2 {
+          min-width: 140px;
+          width: 140px;
+        }
+
+        .prod-table thead th {
+          position: sticky;
+          top: 0;
+          z-index: 30;
+          background: #f9fafb; /* bg-gray-50 */
+        }
+        .prod-table tfoot th {
+          position: sticky;
+          bottom: 0;
+          z-index: 25;
+          background: #f3e8ff; /* bg-purple-100 */
+        }
+
+        .prod-table .sticky-col-1 {
+          position: sticky;
+          left: 0;
+          z-index: 40;
+          background: #ffffff;
+        }
+        .prod-table .sticky-col-2 {
+          position: sticky;
+          left: 90px;   /* = ความกว้างคอลัมน์แรก (prod-col-1) */
+          z-index: 40;
+          background: #ffffff;
+        }
+
+        .prod-table thead .sticky-col-1,
+        .prod-table thead .sticky-col-2 {
+          background: #f9fafb;
+          z-index: 50;
+        }
+        .prod-table tfoot .sticky-col-1,
+        .prod-table tfoot .sticky-col-2 {
+          background: #f3e8ff;
+          z-index: 45;
+        }
+      </style>
+
+      <div class="prod-table-wrapper text-xs">
+        <table class="min-w-full border border-gray-100 prod-table">
           <thead class="bg-gray-50 text-gray-600">
             <tr>
-              <th class="px-3 py-2 text-left border-b border-gray-100">MACHINE NO.</th>
-              <th class="px-3 py-2 text-left border-b border-gray-100">MACHINE NAME</th>
+              <th class="px-3 py-2 text-left border-b border-gray-100 sticky-col-1 prod-col-1">
+                MACHINE NO.
+              </th>
+              <th class="px-3 py-2 text-left border-b border-gray-100 sticky-col-2 prod-col-2">
+                MACHINE NAME
+              </th>
               {% for d in date_list %}
                 <th class="px-3 py-2 text-right border-b border-gray-100">
                   {{ d|date:"d/m" }}
@@ -130,13 +209,14 @@
               </th>
             </tr>
           </thead>
+
           <tbody class="divide-y divide-gray-100">
             {% for row in machine_rows %}
               <tr class="hover:bg-gray-50">
-                <td class="px-3 py-2 border-b border-gray-50 font-semibold text-gray-800">
+                <td class="px-3 py-2 border-b border-gray-50 font-semibold text-gray-800 sticky-col-1 prod-col-1">
                   {{ row.machine_no }}
                 </td>
-                <td class="px-3 py-2 border-b border-gray-50 text-gray-700">
+                <td class="px-3 py-2 border-b border-gray-50 text-gray-700 sticky-col-2 prod-col-2">
                   {{ row.machine_name|default:"-" }}
                 </td>
                 {% for val in row.daily %}
@@ -154,10 +234,14 @@
               </tr>
             {% endfor %}
           </tbody>
+
           <tfoot class="bg-gray-50 text-gray-700">
             <tr>
-              <th class="px-3 py-2 text-left border-t border-gray-200" colspan="2">
+              <th class="px-3 py-2 text-left border-t border-gray-200 sticky-col-1 prod-col-1">
                 รวมต่อวัน
+              </th>
+              <th class="px-3 py-2 text-left border-t border-gray-200 sticky-col-2 prod-col-2">
+                <!-- ช่องว่าง -->
               </th>
               {% for s in total_per_day %}
                 <th class="px-3 py-2 text-right border-t border-gray-200">
@@ -180,6 +264,7 @@
         ยังไม่พบข้อมูลการสแกนในช่วงวันที่ที่เลือก
       </p>
     {% endif %}
+
   </div>
 
 </div>
@@ -208,7 +293,7 @@
         {
           label: "ยอดผลิตรวม (pcs)",
           data: values,
-          backgroundColor: "rgba(129, 140, 248, 0.6)",   // ม่วง
+          backgroundColor: "rgba(129, 140, 248, 0.6)",
           borderColor: "rgba(79, 70, 229, 1)",
           borderWidth: 1,
         },
@@ -224,7 +309,7 @@
             callback: (v) => {
               try { return v.toLocaleString(); }
               catch(e) { return v; }
-            }
+            },
           },
           grid: { color: "rgba(148,163,184,0.3)" },
         },

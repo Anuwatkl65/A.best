@@ -1,68 +1,107 @@
 {% extends "production/base.html" %}
 {% block title %}User Control{% endblock %}
+
 {% block content %}
 <div class="max-w-3xl mx-auto px-4 py-8">
 
+  <!-- หัวข้อ + ปุ่มกลับหน้าเมนู -->
   <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
     <h2 class="text-2xl font-bold text-gray-800">User Control</h2>
-    <a href="{% url 'home_menu' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-600 hover:bg-purple-50 hover:text-purple-700 transition-all shadow-sm">
+    <a href="{% url 'home_menu' %}"
+       class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-600 hover:bg-purple-50 hover:text-purple-700 transition-all shadow-sm">
       <span class="material-symbols-outlined text-[20px]">arrow_back</span>
       กลับหน้าหลัก
     </a>
   </div>
 
+  <!-- กล่องหลัก -->
   <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+
+    <!-- แถบหัวการ์ด + ปุ่มรีเฟรช -->
     <div class="flex justify-between items-center mb-4">
-      <h3 class="font-semibold text-gray-700">รายการผู้ใช้งานออนไลน์</h3>
-      <button id="refresh-user-list-btn" class="flex items-center gap-1 px-3 py-1.5 bg-purple-50 text-purple-700 text-xs font-medium rounded-lg hover:bg-purple-100 transition-colors">
-        <span class="material-symbols-outlined text-[16px]">refresh</span> รีเฟรช
-      </button>
+      <div>
+        <h3 class="font-semibold text-gray-700">รายการผู้ใช้งานออนไลน์</h3>
+        <p class="text-[11px] text-gray-400">
+          ถ้ากดปุ่มเตะออก ผู้ใช้นั้นจะถูกบังคับให้ออกจากระบบทันที
+        </p>
+      </div>
+      <form method="get">
+        <button type="submit"
+                class="flex items-center gap-1 px-3 py-1.5 bg-purple-50 text-purple-700 text-xs font-medium rounded-lg hover:bg-purple-100 transition-colors">
+          <span class="material-symbols-outlined text-[16px]">refresh</span>
+          รีเฟรช
+        </button>
+      </form>
     </div>
-    
-    <div id="user-list-container" class="space-y-2">
-       <p class="text-gray-400 text-center py-4">กำลังโหลด...</p>
-    </div>
-  </div>
 
-</div>
+    <!-- แสดง messages จาก Django -->
+    {% if messages %}
+      <div class="mb-3 space-y-2">
+        {% for message in messages %}
+          <div class="text-xs px-3 py-2 rounded-lg
+                      {% if message.tags == 'success' %}
+                        bg-emerald-50 text-emerald-700 border border-emerald-200
+                      {% elif message.tags == 'error' %}
+                        bg-rose-50 text-rose-700 border border-rose-200
+                      {% else %}
+                        bg-gray-50 text-gray-700 border border-gray-200
+                      {% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
 
-<script>
-  const SCRIPT_URL="/api/";
-  async function loadUsers(){
-    try {
-        const res = await fetch(SCRIPT_URL,{method:'POST',body:new URLSearchParams({action:'getActiveUsers'})});
-        const j = await res.json();
-        const users = j.users || j.data || [];
-        const box = document.getElementById('user-list-container');
-        if(!users.length){ 
-            box.innerHTML = '<div class="text-center py-8 text-gray-400 flex flex-col items-center gap-2"><span class="material-symbols-outlined text-3xl">person_off</span><span>ไม่มีผู้ใช้ออนไลน์</span></div>'; 
-            return; 
-        }
-        box.innerHTML = users.map(u=>`
-        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100 hover:border-purple-200 transition-colors">
+    <!-- รายชื่อผู้ใช้งานออนไลน์ -->
+    {% if online_users %}
+      <div class="space-y-2">
+        {% for u in online_users %}
+          <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100 hover:border-purple-200 transition-colors">
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-xs">
-                    ${(u.name||u.username).charAt(0).toUpperCase()}
+              <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-xs">
+                {{ u.full_name|default:u.username|first|upper }}
+              </div>
+              <div>
+                <div class="font-semibold text-sm text-gray-900">
+                  {{ u.full_name|default:u.username }}
                 </div>
-                <div>
-                    <div class="font-semibold text-sm text-gray-900">${u.name||u.username}</div>
-                    <div class="text-xs text-gray-500">Username: ${u.username||''}</div>
+                <div class="text-xs text-gray-500">
+                  Username: <span class="font-mono">{{ u.username }}</span>
+                  {% if u.role %} · Role: {{ u.role }}{% endif %}
+                  {% if u.department %} · Dept: {{ u.department }}{% endif %}
                 </div>
+                <div class="text-[11px] text-gray-400 mt-0.5">
+                  ล่าสุด:
+                  {% if u.last_login %}
+                    {{ u.last_login|date:"d/m/Y H:i" }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </div>
+              </div>
             </div>
-            <button data-username="${u.username}" class="kick-btn flex items-center gap-1 px-3 py-1.5 bg-white border border-red-100 text-red-600 text-xs font-medium rounded hover:bg-red-50 hover:border-red-200 transition-colors shadow-sm">
-                <span class="material-symbols-outlined text-[14px]">block</span> เตะออก
-            </button>
-        </div>`).join('');
-    } catch(e) { console.error(e); }
-  }
-  document.getElementById('refresh-user-list-btn').onclick = loadUsers;
-  document.getElementById('user-list-container').addEventListener('click', async (e)=>{
-    const btn = e.target.closest('.kick-btn'); if(!btn) return;
-    const username = btn.dataset.username;
-    if(!confirm(`ยืนยันที่จะเตะผู้ใช้ ${username} ออกจากระบบ?`)) return;
-    await fetch(SCRIPT_URL,{method:'POST',body:new URLSearchParams({action:'kickUser',username})});
-    loadUsers();
-  });
-  loadUsers();
-</script>
+
+            <!-- ปุ่มเตะออก (POST + CSRF) -->
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="kick">
+              <input type="hidden" name="user_id" value="{{ u.user.id }}">
+              <button type="submit"
+                      class="kick-btn flex items-center gap-1 px-3 py-1.5 bg-white border border-red-100 text-red-600 text-xs font-medium rounded hover:bg-red-50 hover:border-red-200 transition-colors shadow-sm">
+                <span class="material-symbols-outlined text-[14px]">block</span>
+                เตะออก
+              </button>
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-center py-8 text-gray-400 flex flex-col items-center gap-2">
+        <span class="material-symbols-outlined text-3xl">person_off</span>
+        <span>ยังไม่มีผู้ใช้งานออนไลน์ในขณะนี้</span>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
 {% endblock %}
