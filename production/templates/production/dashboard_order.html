@@ -4,17 +4,20 @@
 {% block title %}Dashboard: {{ department_label }} · Order View{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 pt-6 pb-10"> {# ใช้ max-w-7xl mx-auto สำหรับขอบเขตเนื้อหา #}
+<div class="max-w-7xl mx-auto px-4 pt-6 pb-10">
 
+  <!-- Breadcrumb + Title -->
   <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
     <div>
       <nav class="flex items-center text-xs text-gray-500 mb-1">
-        <a href="{% url 'home_menu' %}" class="hover:text-purple-600 flex items-center gap-1 transition-colors">
-           <span class="material-symbols-outlined text-[16px]">home</span> Home
+        <a href="{% url 'home_menu' %}"
+           class="hover:text-purple-600 flex items-center gap-1 transition-colors">
+          <span class="material-symbols-outlined text-[16px]">home</span> Home
         </a>
         <span class="mx-2">/</span>
-        <a href="{% url 'view_select' %}?department={{ department }}" class="hover:text-purple-600 transition-colors">
-            Dashboard: {{ department_label }}
+        <a href="{% url 'view_select' %}?department={{ department }}"
+           class="hover:text-purple-600 transition-colors">
+          Dashboard: {{ department_label }}
         </a>
         <span class="mx-2">/</span>
         <span class="font-bold text-purple-600">Order View</span>
@@ -24,57 +27,60 @@
       </h1>
     </div>
 
-    <a href="{% url 'view_select' %}?department={{ department }}" 
+    <a href="{% url 'view_select' %}?department={{ department }}"
        class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-all shadow-sm">
       <span class="material-symbols-outlined text-[18px]">arrow_back</span>
       กลับไปเลือกมุมมอง
     </a>
   </div>
 
-  {# ส่วนสรุปยอดรวมด้านบน (ลดขนาด) #}
+  <!-- Summary card -->
   <div class="compact-summary-card mb-6">
     <div class="flex justify-between items-center mb-4">
       <div>
-        <div class="text-purple-600 text-sm font-semibold">ยอดรวมเป้าผลิตในแผนก (ไม่รวม Sample)</div>
+        <div class="text-purple-600 text-sm font-semibold">
+          ยอดรวมเป้าผลิตในแผนก (ไม่รวม Sample)
+        </div>
         <div class="text-3xl font-extrabold text-purple-900 leading-tight mt-1">
           {{ overall_total_target|default:0|intcomma }}
           <span class="text-base font-light text-gray-500 ml-1">pcs</span>
         </div>
       </div>
       <div class="inline-flex gap-2">
-        <a href="?department={{ department }}&view=order&layout=cards"
-           class="{% if layout_mode == 'cards' %}layout-btn-active{% else %}layout-btn{% endif %}">
+        <a href="?department={{ department }}&view=order&layout=cards{% if active_type != 'all' %}&lot_type={{ active_type }}{% endif %}"
+           class="{% if layout == 'cards' %}layout-btn-active{% else %}layout-btn{% endif %}">
           แบบการ์ด
         </a>
-        <a href="?department={{ department }}&view=order&layout=table"
-           class="{% if layout_mode == 'table' %}layout-btn-active{% else %}layout-btn{% endif %}">
+        <a href="?department={{ department }}&view=order&layout=table{% if active_type != 'all' %}&lot_type={{ active_type }}{% endif %}"
+           class="{% if layout == 'table' %}layout-btn-active{% else %}layout-btn{% endif %}">
           แบบตาราง
         </a>
       </div>
     </div>
-    
+
+    <!-- type summary -->
     <div class="grid grid-cols-2 md:grid-cols-5 gap-2 border-t border-purple-100 pt-3">
-      <a href="?department={{ department }}&view=order&layout={{ layout_mode }}&lot_type=order"
+      <a href="?department={{ department }}&view=order&layout={{ layout }}&lot_type=order"
          class="compact-type-badge bg-green-50 border-green-200 text-green-700 hover:bg-green-100 {% if active_type == 'order' %}ring-1 ring-green-500{% endif %}">
         <div class="text-xs font-medium">Order</div>
         <div class="text-base font-bold">{{ overall_qty_by_type.Order|default:0|intcomma }}</div>
       </a>
-      <a href="?department={{ department }}&view=order&layout={{ layout_mode }}&lot_type=sample"
+      <a href="?department={{ department }}&view=order&layout={{ layout }}&lot_type=sample"
          class="compact-type-badge bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100 {% if active_type == 'sample' %}ring-1 ring-yellow-500{% endif %}">
         <div class="text-xs font-medium">Sample</div>
         <div class="text-base font-bold">{{ overall_qty_by_type.Sample|default:0|intcomma }}</div>
       </a>
-      <a href="?department={{ department }}&view=order&layout={{ layout_mode }}&lot_type=reserved"
+      <a href="?department={{ department }}&view=order&layout={{ layout }}&lot_type=reserved"
          class="compact-type-badge bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 {% if active_type == 'reserved' %}ring-1 ring-blue-500{% endif %}">
         <div class="text-xs font-medium">Reserved</div>
         <div class="text-base font-bold">{{ overall_qty_by_type.Reserved|default:0|intcomma }}</div>
       </a>
-      <a href="?department={{ department }}&view=order&layout={{ layout_mode }}&lot_type=extra"
+      <a href="?department={{ department }}&view=order&layout={{ layout }}&lot_type=extra"
          class="compact-type-badge bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100 {% if active_type == 'extra' %}ring-1 ring-orange-500{% endif %}">
         <div class="text-xs font-medium">Extra</div>
         <div class="text-base font-bold">{{ overall_qty_by_type.Extra|default:0|intcomma }}</div>
       </a>
-      <a href="?department={{ department }}&view=order&layout={{ layout_mode }}&lot_type=claim"
+      <a href="?department={{ department }}&view=order&layout={{ layout }}&lot_type=claim"
          class="compact-type-badge bg-pink-50 border-pink-200 text-pink-700 hover:bg-pink-100 {% if active_type == 'claim' %}ring-1 ring-pink-500{% endif %}">
         <div class="text-xs font-medium">Claim</div>
         <div class="text-base font-bold">{{ overall_qty_by_type.Claim|default:0|intcomma }}</div>
@@ -82,106 +88,121 @@
     </div>
   </div>
 
-  {% if layout_mode == "cards" %}
+  {% if layout == "cards" %}
 
-      {% if machine_summaries %}
-          <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-              {% for m in machine_summaries %}
-              <div class="machine-card">
-                  <div class="flex justify-between items-start mb-4">
-                      <div>
-                          <div class="machine-title">{{ m.machine_no }}</div>
-                          <div class="machine-subtitle">{{ m.machine_name|default:"เครื่องจักร" }}</div>
-                      </div>
-                      <a href="{% url 'machine_detail' m.machine_no %}?department={{ department }}" class="search-icon" title="ดูรายละเอียดเครื่อง">
-                        <span class="material-symbols-outlined">search</span>
-                      </a>
-                  </div>
-
-                  <div class="machine-total">
-                      {{ m.total_target|default:0|intcomma }}
-                  </div>
-                  <div class="machine-type-label">
-                      ยอดรวมเป้าทั้งหมด (ไม่รวม Sample)
-                  </div>
-
-                  <div class="grid grid-cols-5 gap-2 mt-5">
-                      <div class="breakdown-item breakdown-order">
-                          <div class="breakdown-label">Order</div>
-                          <div class="breakdown-value">
-                            {{ m.types.Order.target|default:0|intcomma }}
-                          </div>
-                      </div>
-                      <div class="breakdown-item breakdown-sample">
-                          <div class="breakdown-label">Sample</div>
-                          <div class="breakdown-value">
-                            {{ m.types.Sample.target|default:0|intcomma }}
-                          </div>
-                      </div>
-                      <div class="breakdown-item breakdown-reserved">
-                          <div class="breakdown-label">Reserved</div>
-                          <div class="breakdown-value">
-                            {{ m.types.Reserved.target|default:0|intcomma }}
-                          </div>
-                      </div>
-                      <div class="breakdown-item breakdown-extra">
-                          <div class="breakdown-label">Extra</div>
-                          <div class="breakdown-value">
-                            {{ m.types.Extra.target|default:0|intcomma }}
-                          </div>
-                      </div>
-                      <div class="breakdown-item breakdown-claim">
-                          <div class="breakdown-label">Claim</div>
-                          <div class="breakdown-value">
-                            {{ m.types.Claim.target|default:0|intcomma }}
-                          </div>
-                      </div>
-                  </div>
-              </div>
-              {% endfor %}
+    {% if machine_summaries %}
+      <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+        {% for m in machine_summaries %}
+        <div class="machine-card">
+          <!-- Header: machine no + name -->
+          <div class="flex justify-between items-start mb-6">
+            <div>
+              <div class="machine-title">{{ m.machine_no }}</div>
+              <div class="machine-subtitle">{{ m.machine_name|default:"เครื่องจักร" }}</div>
+            </div>
+            <a href="{% url 'machine_detail' m.machine_no %}?department={{ department }}&from_view=order"
+               class="search-icon" title="ดูรายละเอียดเครื่อง">
+              <span class="material-symbols-outlined">search</span>
+            </a>
           </div>
-      {% else %}
-          <div class="text-gray-400 text-sm text-center py-10">ยังไม่มีข้อมูลในแผนกนี้</div>
-      {% endif %}
 
-  {% else %} {# layout_mode == "table" #}
-      {% if machine_summaries %}
-          <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-              {% for m in machine_summaries %}
-              <a href="{% url 'machine_detail' m.machine_no %}?department={{ department }}" class="machine-compact-card group">
-                  <div class="flex justify-between items-center mb-2">
-                      <h3 class="text-base font-bold text-gray-900 group-hover:text-purple-700 transition-colors">
-                          {{ m.machine_no }}
-                      </h3>
-                      <span class="text-xs text-gray-500">
-                          <span class="material-symbols-outlined text-[14px] align-text-bottom">build_circle</span>
-                          {{ m.machine_name|default:"เครื่องจักร" }}
-                      </span>
-                  </div>
-                  
-                  <div class="text-sm text-gray-600 mb-2 flex justify-between items-center">
-                      <span>เป้ารวม: <span class="font-bold text-gray-900">{{ m.total_target|default:0|intcomma }}</span> pcs</span>
-                      <span>ผลิตแล้ว: <span class="font-bold text-purple-700">{{ m.total_produced|default:0|intcomma }}</span> pcs</span>
-                  </div>
+          <!-- total of machine -->
+          <div class="machine-total">
+            {{ m.total_target|default:0|intcomma }}
+          </div>
+          <div class="machine-type-label">
+            ยอดรวมเป้าทั้งหมด (ไม่รวม Sample)
+          </div>
 
-                  <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden mb-2">
-                      <div class="h-full rounded-full transition-all duration-500
-                                  {% if m.progress >= 100 %}bg-green-500{% elif m.total_produced == 0 %}bg-gray-300{% else %}bg-purple-500{% endif %}"
-                           style="width: {{ m.progress }}%;"></div>
-                  </div>
-                  <div class="flex justify-between items-center text-xs text-gray-500">
-                      <span>Progress: <span class="font-bold text-gray-800">{{ m.progress }}%</span></span>
-                      <span>Lots: <span class="font-bold text-gray-800">{{ m.lots|length }}</span></span>
-                  </div>
-              </a>
-              {% endfor %}
+          <!-- per-type buttons INSIDE machine card (link to List View) -->
+          <div class="mt-5 flex flex-wrap justify-center gap-2">
+            <a href="?department={{ department }}&view=list&machine_no={{ m.machine_no }}&lot_type=order"
+               class="machine-type-chip chip-order">
+              <span class="chip-label">Order</span>
+              <span class="chip-value">{{ m.types.Order.target|default:0|intcomma }}</span>
+            </a>
+
+            <a href="?department={{ department }}&view=list&machine_no={{ m.machine_no }}&lot_type=sample"
+               class="machine-type-chip chip-sample">
+              <span class="chip-label">Sample</span>
+              <span class="chip-value">{{ m.types.Sample.target|default:0|intcomma }}</span>
+            </a>
+
+            <a href="?department={{ department }}&view=list&machine_no={{ m.machine_no }}&lot_type=reserved"
+               class="machine-type-chip chip-reserved">
+              <span class="chip-label">Reserved</span>
+              <span class="chip-value">{{ m.types.Reserved.target|default:0|intcomma }}</span>
+            </a>
+
+            <a href="?department={{ department }}&view=list&machine_no={{ m.machine_no }}&lot_type=extra"
+               class="machine-type-chip chip-extra">
+              <span class="chip-label">Extra</span>
+              <span class="chip-value">{{ m.types.Extra.target|default:0|intcomma }}</span>
+            </a>
+
+            <a href="?department={{ department }}&view=list&machine_no={{ m.machine_no }}&lot_type=claim"
+               class="machine-type-chip chip-claim">
+              <span class="chip-label">Claim</span>
+              <span class="chip-value">{{ m.types.Claim.target|default:0|intcomma }}</span>
+            </a>
           </div>
-      {% else %}
-          <div class="col-span-full text-center py-16 bg-white rounded-2xl border border-gray-100 border-dashed">
-            <span class="material-symbols-outlined text-4xl text-gray-300 mb-2">precision_manufacturing</span>
-            <p class="text-gray-500 text-sm">ไม่พบข้อมูลเครื่องจักรในแผนกนี้</p>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-gray-400 text-sm text-center py-10">
+        ยังไม่มีข้อมูลในแผนกนี้
+      </div>
+    {% endif %}
+
+  {% else %}  {# layout == "table" #}
+
+    {% if machine_summaries %}
+      <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+        {% for m in machine_summaries %}
+        <a href="{% url 'machine_detail' m.machine_no %}?department={{ department }}&from_view=order"
+           class="machine-compact-card group">
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="text-base font-bold text-gray-900 group-hover:text-purple-700 transition-colors">
+              {{ m.machine_no }}
+            </h3>
+            <span class="text-xs text-gray-500">
+              <span class="material-symbols-outlined text-[14px] align-text-bottom">build_circle</span>
+              {{ m.machine_name|default:"เครื่องจักร" }}
+            </span>
           </div>
-      {% endif %}
+
+          <div class="text-sm text-gray-600 mb-2 flex justify-between items-center">
+            <span>เป้ารวม:
+              <span class="font-bold text-gray-900">{{ m.total_target|default:0|intcomma }}</span> pcs
+            </span>
+            <span>ผลิตแล้ว:
+              <span class="font-bold text-purple-700">{{ m.total_produced|default:0|intcomma }}</span> pcs
+            </span>
+          </div>
+
+          <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden mb-2">
+            <div class="h-full rounded-full transition-all duration-500
+                        {% if m.progress >= 100 %}bg-green-500{% elif m.total_produced == 0 %}bg-gray-300{% else %}bg-purple-500{% endif %}"
+                 style="width: {{ m.progress }}%;"></div>
+          </div>
+          <div class="flex justify-between items-center text-xs text-gray-500">
+            <span>Progress:
+              <span class="font-bold text-gray-800">{{ m.progress }}%</span>
+            </span>
+            <span>Lots:
+              <span class="font-bold text-gray-800">{{ m.lots|length }}</span>
+            </span>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="col-span-full text-center py-16 bg-white rounded-2xl border border-gray-100 border-dashed">
+        <span class="material-symbols-outlined text-4xl text-gray-300 mb-2">precision_manufacturing</span>
+        <p class="text-gray-500 text-sm">ไม่พบข้อมูลเครื่องจักรในแผนกนี้</p>
+      </div>
+    {% endif %}
 
   {% endif %}
 
@@ -190,162 +211,185 @@
 <style>
 /* Summary Card - Compact Version */
 .compact-summary-card {
-    border: 1px solid #c4b5fd;
-    border-radius: 16px;
-    background: linear-gradient(135deg, #fbf8ff 0%, #ffffff 100%);
-    padding: 1.5rem; /* ลด padding */
-    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.08);
+  border: 1px solid #c4b5fd;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fbf8ff 0%, #ffffff 100%);
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.08);
 }
 
 .compact-type-badge {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 0.75rem 0.5rem; /* ลด padding */
-    border-radius: 10px; /* ลด border-radius เล็กน้อย */
-    border: 1px solid;
-    transition: all 0.2s ease;
-    text-decoration: none;
-    color: inherit; /* ให้สีตัวอักษรเป็นไปตามที่กำหนดใน class */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 0.5rem;
+  border-radius: 10px;
+  border: 1px solid;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  color: inherit;
 }
 .compact-type-badge:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
-/* Machine Card (สำหรับ layout_mode == "cards") - เหมือนเดิม */
+/* Machine Card (layout == "cards") */
 .machine-card {
-    border: 2px solid #c4b5fd;
-    border-radius: 18px;
-    background: white;
-    padding: 1.75rem;
-    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.08);
-    transition: all 0.3s ease;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 20px;
+  background: linear-gradient(145deg, #ffffff, #faf8ff);
+  padding: 1.6rem 1.8rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+  transition: all 0.25s ease;
 }
-
 .machine-card:hover {
-    box-shadow: 0 8px 24px rgba(139, 92, 246, 0.15);
-    transform: translateY(-2px);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(99, 102, 241, 0.20);
 }
 
 .machine-title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #1f2937;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1f2937;
 }
-
 .machine-subtitle {
-    font-size: 0.875rem;
-    color: #6b7280;
-    margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-top: 0.15rem;
 }
 
 .search-icon {
-    background: #f3f4f6;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #6b7280;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-decoration: none;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
 }
-
 .search-icon:hover {
-    background: #e5e7eb;
-    color: #374151;
+  background: #e5e7eb;
+  color: #374151;
 }
 
 .machine-total {
-    font-size: 3rem;
-    font-weight: 800;
-    color: #6366f1;
-    text-align: center;
-    margin: 1rem 0 0.5rem 0;
+  font-size: 2.4rem;
+  font-weight: 800;
+  color: #6366f1;
+  text-align: center;
+  margin: 0.5rem 0 0.25rem 0;
 }
-
 .machine-type-label {
-    text-align: center;
-    font-size: 0.875rem;
-    color: #6b7280;
-    margin-bottom: 1.5rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #6b7280;
 }
 
-.breakdown-item {
-    text-align: center;
-    padding: 0.75rem 0.5rem;
-    border-radius: 10px;
-    border: 2px solid;
+/* per-type chip inside machine card */
+.machine-type-chip {
+  min-width: 86px;
+  padding: 0.4rem 0.7rem;
+  border-radius: 14px;
+  border: 2px solid transparent;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: 0.7rem;
+  line-height: 1.1;
+  font-weight: 600;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.05);
+  transition: all 0.18s ease;
+}
+.machine-type-chip:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.09);
 }
 
-.breakdown-order { background-color: #dcfce7; border-color: #86efac; }
-.breakdown-sample { background-color: #fef3c7; border-color: #fde047; }
-.breakdown-reserved { background-color: #dbeafe; border-color: #93c5fd; }
-.breakdown-extra { background-color: #fed7aa; border-color: #fdba74; }
-.breakdown-claim { background-color: #fecdd3; border-color: #fda4af; }
-
-.breakdown-label {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #374151;
-    margin-bottom: 0.25rem;
+.chip-label {
+  opacity: 0.8;
+}
+.chip-value {
+  font-size: 0.95rem;
 }
 
-.breakdown-value {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #111827;
+/* chip colors */
+.chip-order {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #14532d;
+}
+.chip-sample {
+  background: #fef3c7;
+  border-color: #fde047;
+  color: #78350f;
+}
+.chip-reserved {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+.chip-extra {
+  background: #fed7aa;
+  border-color: #fdba74;
+  color: #7c2d12;
+}
+.chip-claim {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #991b1b;
 }
 
 /* Layout Buttons */
 .layout-btn {
-    background: transparent;
-    color: #9ca3af;
-    padding: 6px 16px; /* ลด padding */
-    border-radius: 16px; /* ลด border-radius */
-    transition: all 0.2s;
-    font-size: 0.8rem; /* ลดขนาด font */
-    text-decoration: none;
+  background: transparent;
+  color: #9ca3af;
+  padding: 6px 16px;
+  border-radius: 16px;
+  transition: all 0.2s;
+  font-size: 0.8rem;
+  text-decoration: none;
 }
-
 .layout-btn:hover {
-    background: #f3f4f6;
-    color: #6366f1;
+  background: #f3f4f6;
+  color: #6366f1;
 }
-
 .layout-btn-active {
-    background: white;
-    color: #6366f1;
-    border: 1px solid #c4b5fd; /* ลดขนาด border */
-    padding: 6px 16px;
-    border-radius: 16px;
-    box-shadow: 0 1px 4px rgba(139, 92, 246, 0.1); /* ลดเงา */
-    font-weight: 600;
-    text-decoration: none;
+  background: white;
+  color: #6366f1;
+  border: 1px solid #c4b5fd;
+  padding: 6px 16px;
+  border-radius: 16px;
+  box-shadow: 0 1px 4px rgba(139, 92, 246, 0.1);
+  font-weight: 600;
+  text-decoration: none;
 }
 
-/* NEW: Machine Compact Card (สำหรับ layout_mode == "table") */
+/* Machine Compact Card (layout == "table") */
 .machine-compact-card {
-    display: block;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 14px;
-    padding: 1rem; /* ลด padding */
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    transition: all 0.2s ease;
-    text-decoration: none;
+  display: block;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 1rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  transition: all 0.2s ease;
+  text-decoration: none;
 }
 .machine-compact-card:hover {
-    border-color: #a78bfa;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    transform: translateY(-2px);
+  border-color: #a78bfa;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+              0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
 }
-
 </style>
 
 {% endblock %}

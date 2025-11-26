@@ -32,19 +32,30 @@
       </h1>
     </div>
 
-    {% if department == 'Overall' %}
-      <a href="{% url 'department_select' %}"
+    {% if from_view == "order" %}
+      {# เคสนี้: เข้าหน้านี้ผ่าน machine_detail จาก Order View #}
+      <a href="{% url 'dashboard' %}?department={{ department }}&view=order"
          class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-all shadow-sm">
         <span class="material-symbols-outlined text-[18px]">arrow_back</span>
-        กลับไปเลือกแผนก
+        กลับไป Order View
       </a>
     {% else %}
-      <a href="{% url 'view_select' %}?department={{ department }}"
-         class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-all shadow-sm">
-        <span class="material-symbols-outlined text-[18px]">arrow_back</span>
-        กลับไปเลือกมุมมอง
-      </a>
+      {# เคสปกติเดิม ๆ #}
+      {% if department == 'Overall' %}
+        <a href="{% url 'department_select' %}"
+           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-all shadow-sm">
+          <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+          กลับไปเลือกแผนก
+        </a>
+      {% else %}
+        <a href="{% url 'view_select' %}?department={{ department }}"
+           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-all shadow-sm">
+          <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+          กลับไปเลือกมุมมอง
+        </a>
+      {% endif %}
     {% endif %}
+
   </div>
 
   <!-- Type filter -->
@@ -122,7 +133,7 @@
         </span>
         <input type="text" name="q" value="{{ search_query }}"
                placeholder="ค้นหา Lot, Part, Customer..."
-               class="w-full h-full min-h-[42px] pl-10 pr-4 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 shadow-sm">
+               class="w-full h-full min-h[42px] pl-10 pr-4 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 shadow-sm">
       </div>
     </form>
   </div>
@@ -131,7 +142,9 @@
   <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
     {% if lots %}
       {% for lot in lots %}
-        <a href="{% url 'lot_detail' lot.lot_no %}?department={{ department }}" class="compact-card group">
+        <a
+          href="{% url 'lot_detail' lot.lot_no %}?department={{ department }}&view={{ view_type|default:'list' }}{% if active_type and active_type != 'all' %}&lot_type={{ active_type }}{% endif %}{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}{% if machine_no %}&machine_no={{ machine_no }}{% endif %}{% if from_view %}&from_view={{ from_view }}{% endif %}"
+          class="compact-card group">
 
           <!-- Header -->
           <div class="flex justify-between items-start mb-3 border-b border-gray-100 pb-2">
@@ -149,61 +162,62 @@
             </span>
           </div>
 
-          <!-- Detail section -->
-          <div class="grid grid-cols-2 gap-y-1 gap-x-2 text-xs mb-3">
-            <!-- Customer ซ้าย -->
-            <div>
-              <span class="text-gray-400 block text-[10px]">Customer</span>
-              <span class="font-semibold text-gray-700 truncate block" title="{{ lot.customer }}">
-                {{ lot.customer|default:"-" }}
-              </span>
-            </div>
-            <!-- Part No ขวาสุด -->
-            <div class="text-right">
-              <span class="text-gray-400 block text-[10px]">Part No</span>
-              <span class="font-semibold text-gray-700 truncate block text-right" title="{{ lot.part_no }}">
-                {{ lot.part_no|default:"-" }}
-              </span>
-            </div>
-
-            <div>
-              <span class="text-gray-400 block text-[10px]">Prod. Qty</span>
-              <span class="font-semibold text-gray-700">
-                {{ lot.production_quantity|intcomma }} pcs
-              </span>
-            </div>
-            <div class="text-right">
-              <span class="text-gray-400 block text-[10px]">Target</span>
-              <span class="font-bold text-gray-900">
-                {{ lot.target|intcomma }} pcs
-              </span>
-            </div>
-
-            <div>
-              <span class="text-gray-400 block text-[10px]">Machine</span>
-              <span class="font-medium text-gray-800 bg-gray-100 px-1.5 py-0.5 rounded inline-block">
-                {{ lot.machine_no|default:"-" }}
-              </span>
-            </div>
-            <div class="text-right">
-              <span class="text-gray-400 block text-[10px]">Department</span>
-              <span class="font-semibold text-gray-700">
-                {{ lot.department|default:"-" }}
-              </span>
+          <!-- Detail section (UI ใหม่) -->
+          <div class="grid grid-cols-2 gap-y-2 gap-x-4 text-xs mb-3">
+            <!-- ซ้าย: Customer > Part No > Description > Prod Qty > จำนวนบรรจุ -->
+            <div class="space-y-1">
+              <div>
+                <span class="text-gray-400 block text-[10px]">Customer</span>
+                <span class="font-semibold text-gray-900 truncate block" title="{{ lot.customer }}">
+                  {{ lot.customer|default:"-" }}
+                </span>
+              </div>
+              <div>
+                <span class="text-gray-400 block text-[10px]">Part No</span>
+                <span class="font-semibold text-gray-900 truncate block" title="{{ lot.part_no }}">
+                  {{ lot.part_no|default:"-" }}
+                </span>
+              </div>
+              <div>
+                <span class="text-gray-400 block text-[10px]">Description</span>
+                <span class="font-semibold text-gray-900 truncate block" title="{{ lot.description }}">
+                  {{ lot.description|default:"-" }}
+                </span>
+              </div>
+              <div>
+                <span class="text-gray-400 block text-[10px]">Prod. Qty</span>
+                <span class="font-semibold text-gray-900">
+                  {{ lot.production_quantity|intcomma }} pcs
+                </span>
+              </div>
+              <div>
+                <span class="text-gray-400 block text-[10px]">จำนวนบรรจุต่อกล่อง</span>
+                <span class="font-semibold text-gray-900">
+                  {{ lot.pieces_per_box|intcomma }} pcs / กล่อง
+                </span>
+              </div>
             </div>
 
-            <div class="col-span-2">
-              <span class="text-gray-400 block text-[10px]">Description</span>
-              <span class="font-medium text-gray-700 truncate block" title="{{ lot.description }}">
-                {{ lot.description|default:"-" }}
-              </span>
-            </div>
-
-            <div class="col-span-2">
-              <span class="text-gray-400 block text-[10px]">จำนวนบรรจุต่อกล่อง</span>
-              <span class="font-semibold text-gray-700">
-                {{ lot.pieces_per_box|intcomma }} pcs / กล่อง
-              </span>
+            <!-- ขวา: Department > Machine > Target -->
+            <div class="space-y-1 text-right">
+              <div>
+                <span class="text-gray-400 block text-[10px]">Department</span>
+                <span class="font-semibold text-gray-900">
+                  {{ lot.department|default:"-" }}
+                </span>
+              </div>
+              <div>
+                <span class="text-gray-400 block text-[10px]">Machine</span>
+                <span class="font-semibold text-gray-900 bg-gray-100 px-1.5 py-0.5 rounded inline-block">
+                  {{ lot.machine_no|default:"-" }}
+                </span>
+              </div>
+              <div>
+                <span class="text-gray-400 block text-[10px]">Target</span>
+                <span class="font-bold text-gray-900">
+                  {{ lot.target|intcomma }} pcs
+                </span>
+              </div>
             </div>
           </div>
 

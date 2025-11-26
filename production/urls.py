@@ -23,8 +23,6 @@ urlpatterns = [
     path("productivity/", views.productivity_form, name="productivity_form"),
     path("productivity/report/", views.productivity_view, name="productivity_view"),
 
-
-
     # Lot detail
     path("lot/<str:lot_no>/", views.lot_detail, name="lot_detail"),
 

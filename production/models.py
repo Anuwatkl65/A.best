@@ -74,8 +74,8 @@ class Lot(models.Model):
     @property
     def progress(self):
         """เปอร์เซ็นต์ความคืบหน้า"""
-        if (self.target or self.production_quantity) > 0:
-            target = self.target or self.production_quantity
+        target = self.target or self.production_quantity
+        if target > 0:
             return min(100, int(self.produced * 100 / target))
         return 0
 

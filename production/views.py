@@ -1,26 +1,23 @@
 from datetime import datetime, timedelta
 
-import json
 import openpyxl
-import pandas as pd  
+import pandas as pd
 
+from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.core.management.base import BaseCommand
+from django.db import transaction
 from django.db.models import Sum, Q
 from django.db.models.functions import TruncDate, TruncHour, TruncMonth, Coalesce
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils.timezone import now
-from django.contrib import messages  
-from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.csrf import csrf_exempt
 from openpyxl.utils import get_column_letter
 
-from .models import Lot, ScanRecord, UserProfile, Machine  
-
-from django.core.management.base import BaseCommand
-from django.db import transaction
-
+from .models import Lot, ScanRecord, UserProfile, Machine
 
 
 # label ชื่อแผนก
@@ -97,15 +94,6 @@ def _build_lot_list(qs):
                 "last_scan": lot.last_scan,
             }
         )
-
-    summary = {
-        "total_lots": qs.count(),
-        "waiting": waiting,
-        "in_progress": in_progress,
-        "finished": finished,
-    }
-    return lots, summary
-
 
     summary = {
         "total_lots": qs.count(),
@@ -197,6 +185,7 @@ def view_select(request):
 # ---------- Dashboard หลัก (List / Machine / Order / Productivity) ----------
 
 
+@login_required
 def dashboard(request):
     dept = request.GET.get("department", "Overall")
     view_type = request.GET.get("view", "list")  # list / machine / order / productivity
@@ -218,15 +207,14 @@ def dashboard(request):
 
     machine_no_filter = request.GET.get("machine_no", "").strip()
     lot_type = request.GET.get("lot_type", "all")  # ใช้กับปุ่ม filter ด้านบน
-    layout = request.GET.get("layout", "card")  # ใช้เปลี่ยน layout (machine)
-    status = request.GET.get("status", "all")  # waiting / in_progress / finished
+    layout = request.GET.get("layout", "cards")    # ใช้เปลี่ยน layout (order/machine)
+    status = request.GET.get("status", "all")      # waiting / in_progress / finished
 
     # normalize layout
-    if layout not in ["card", "table"]:
-        layout = "card"
+    if layout not in ["cards", "table"]:
+        layout = "cards"
 
     department_label = LABELS.get(dept, dept)
-
 
     # ---------- ดึงข้อมูล Lot ----------
     qs = Lot.objects.all()
@@ -348,6 +336,8 @@ def dashboard(request):
                 machine_name,
                 {
                     "machine_no": machine_name,
+                    # ไม่ได้ดึง machine_name จาก table Machine ตอนนี้ ใช้ชื่อเครื่องแทนไปก่อน
+                    "machine_name": machine_name,
                     "total_target": 0,
                     "total_produced": 0,
                     "types": {
@@ -370,8 +360,10 @@ def dashboard(request):
             ms["types"][t]["target"] += lot["target"]
             ms["types"][t]["count"] += 1
 
+            # ✅ list ของ Lots ที่จะใช้ในการ์ดเครื่อง
             ms["lots"].append(lot)
 
+        # คำนวณ progress ต่อเครื่อง
         for ms in machine_map.values():
             if ms["total_target"] > 0:
                 ms["progress"] = int(
@@ -384,7 +376,7 @@ def dashboard(request):
 
         machine_summaries.sort(key=lambda x: x["machine_no"])
 
-    # ---------- Machine cards สำหรับ Machine View ----------
+    # ---------- Machine cards สำหรับ Machine View (เดิม) ----------
     machines = []
     if view_type == "machine":
         machine_map = {}
@@ -405,9 +397,7 @@ def dashboard(request):
 
         # หา active lot + สถานะ
         for m, info in machine_map.items():
-            running_lot = [
-                x for x in info["lots"] if 0 < x["progress"] < 100
-            ]
+            running_lot = [x for x in info["lots"] if 0 < x["progress"] < 100]
             finished_lot = [x for x in info["lots"] if x["progress"] >= 100]
 
             if running_lot:
@@ -480,12 +470,15 @@ def dashboard(request):
     return render(request, template_name, context)
 
 
+
 # ---------- Machine detail (ใช้ template list เดิม) ----------
 
 
 @login_required
 def machine_detail(request, machine_no):
     dept = request.GET.get("department", "Preform")
+    # 👇 รับค่าจาก query string (เช่น from_view=order เวลามาจาก Order View)
+    from_view = request.GET.get("from_view", "")
 
     qs = Lot.objects.filter(
         department__icontains="พรีฟอร์ม" if dept == "Preform" else dept,
@@ -505,9 +498,13 @@ def machine_detail(request, machine_no):
         "type_counts": type_counts,
         "active_type": "all",
         "active_status": "all",
+        # 👇 ส่งไปให้ template ใช้เงื่อนไขปุ่มย้อนกลับ + สร้างลิงก์ไป lot_detail
+        "from_view": from_view,
     }
 
     return render(request, "production/dashboard_list.html", ctx)
+
+
 
 
 # ---------- Lot detail + Chart ----------
@@ -518,11 +515,67 @@ def lot_detail(request, lot_no):
     """
     หน้าแสดงรายละเอียด Lot + กราฟปริมาณการสแกน + ประวัติการสแกน
     - agg = hour/day/month ใช้กับกราฟ
-    - scan_order = newst/oldest/qty_desc/qty_asc ใช้เรียงตารางประวัติ
+    - scan_order = newest/oldest/qty_desc/qty_asc ใช้เรียงตารางประวัติ
     - scan_machine = all หรือรหัสเครื่อง
     - scan_from / scan_to = YYYY-MM-DD ใช้กรองช่วงวันที่
     """
     dept_param = request.GET.get("department") or "Overall"
+
+    # view ที่มาจาก dashboard (list / order / machine / productivity)
+    back_view = request.GET.get("view") or "list"
+    if back_view not in ["list", "order", "machine", "productivity"]:
+        back_view = "list"
+
+    # เพิ่ม: พารามิเตอร์ filter จากหน้า list/order + ข้อมูลจาก machine_detail
+    lot_type = request.GET.get("lot_type", "")
+    status = request.GET.get("status", "")
+    search_q = request.GET.get("q", "")
+    layout = request.GET.get("layout", "")
+
+    machine_no = request.GET.get("machine_no", "").strip()
+    from_view = request.GET.get("from_view", "").strip()
+
+    # ---------- คำนวณ back_url + back_label ----------
+    if machine_no:
+        # มาจากหน้า machine_detail (list ของเครื่องเดียว)
+        base_url = reverse("machine_detail", args=[machine_no])
+        params = [f"department={dept_param}"]
+        if from_view:
+            params.append(f"from_view={from_view}")
+        back_url = f"{base_url}?{'&'.join(params)}"
+        back_label = "กลับไป List View"
+    else:
+        # เคสปกติ: กลับไป dashboard ตาม view + เก็บ filter เดิมไว้
+        dash_url = reverse("dashboard")
+        params = [f"department={dept_param}", f"view={back_view}"]
+
+        # เก็บ filter เฉพาะที่ใช้กับ list/order
+        if back_view in ["list", "order"]:
+            if lot_type:
+                params.append(f"lot_type={lot_type}")
+            if status:
+                params.append(f"status={status}")
+            if search_q:
+                params.append(f"q={search_q}")
+            if back_view == "order" and layout:
+                params.append(f"layout={layout}")
+
+        # 👇 เพิ่มตรงนี้: ส่ง from_view กลับไปด้วยถ้ามี
+        if from_view:
+            params.append(f"from_view={from_view}")
+
+        qs = "&".join(params)
+        back_url = f"{dash_url}?{qs}"
+
+        if back_view == "order":
+            back_label = "กลับไป Order View"
+        elif back_view == "machine":
+            back_label = "กลับไป Machine View"
+        elif back_view == "productivity":
+            back_label = "กลับไป Productivity"
+        else:
+            back_label = "กลับไป List View"
+
 
     # มุมมองกราฟ
     agg = request.GET.get("agg", "hour")
@@ -532,11 +585,7 @@ def lot_detail(request, lot_no):
     lot = get_object_or_404(Lot, lot_no=lot_no)
 
     # ------------------ ข้อมูล Scan ทั้งหมดของ Lot (ใช้ทำกราฟ + ดึง machine list) ------------------
-    scans_all = (
-        ScanRecord.objects
-        .filter(lot=lot)
-        .order_by("scanned_at")
-    )
+    scans_all = ScanRecord.objects.filter(lot=lot).order_by("scanned_at")
 
     # ถ้ายังไม่มีการสแกนเลย
     if not scans_all.exists():
@@ -558,14 +607,17 @@ def lot_detail(request, lot_no):
             "scan_from": "",
             "scan_to": "",
             "scan_machines": [],
+            # สำหรับปุ่มย้อนกลับ
+            "back_view": back_view,
+            "back_url": back_url,
+            "back_label": back_label,
         }
         return render(request, "production/lot_detail.html", context)
 
     # ------------------ สร้างข้อมูลสำหรับกราฟ (ใช้ scans_all ทั้งหมด) ------------------
     if agg == "day":
         bucket_qs = (
-            scans_all
-            .annotate(bucket=TruncDate("scanned_at"))
+            scans_all.annotate(bucket=TruncDate("scanned_at"))
             .values("bucket")
             .annotate(total_qty=Sum("qty"))
             .order_by("bucket")
@@ -573,8 +625,7 @@ def lot_detail(request, lot_no):
         date_fmt = "%d/%m"
     elif agg == "month":
         bucket_qs = (
-            scans_all
-            .annotate(bucket=TruncMonth("scanned_at"))
+            scans_all.annotate(bucket=TruncMonth("scanned_at"))
             .values("bucket")
             .annotate(total_qty=Sum("qty"))
             .order_by("bucket")
@@ -582,8 +633,7 @@ def lot_detail(request, lot_no):
         date_fmt = "%m/%Y"
     else:  # hour
         bucket_qs = (
-            scans_all
-            .annotate(bucket=TruncHour("scanned_at"))
+            scans_all.annotate(bucket=TruncHour("scanned_at"))
             .values("bucket")
             .annotate(total_qty=Sum("qty"))
             .order_by("bucket")
@@ -671,19 +721,16 @@ def lot_detail(request, lot_no):
     context = {
         "department": dept_param,
         "department_label": LABELS.get(dept_param, lot.department or dept_param),
-
         "lot": lot,
         "produced": produced_qty,
         "target": target_qty,
         "progress": progress_pct,
         "boxes": boxes,
-
         # กราฟ
         "chart_labels": chart_labels,
         "chart_daily": chart_daily,
         "chart_cumulative": chart_cumulative,
         "agg": agg,
-
         # ตารางประวัติ
         "scan_logs": scan_logs,
         "scan_order": scan_order,
@@ -691,11 +738,15 @@ def lot_detail(request, lot_no):
         "scan_from": scan_from,
         "scan_to": scan_to,
         "scan_machines": scan_machines,
+        # สำหรับปุ่มย้อนกลับ
+        "back_view": back_view,
+        "back_url": back_url,
+        "back_label": back_label,
     }
     return render(request, "production/lot_detail.html", context)
 
-
 # ---------- หน้าประกอบอื่น ๆ ----------
+
 @login_required
 def productivity_form(request):
     """
@@ -778,7 +829,6 @@ def productivity_view(request):
     )
 
     # -------- 3) รวมยอดต่อเครื่องต่อวันด้วย ORM --------
-    # จะได้ row ประมาณ: {"machine_no": "M308", "day": date(2025,11,21), "total_qty": 8000}
     grouped = (
         scans.annotate(day=TruncDate("scanned_at"))
         .values("machine_no", "day")
@@ -803,8 +853,9 @@ def productivity_view(request):
     machine_rows = []
     if machine_data:
         machine_names = dict(
-            Machine.objects.filter(machine_no__in=machine_data.keys())
-            .values_list("machine_no", "machine_name")
+            Machine.objects.filter(machine_no__in=machine_data.keys()).values_list(
+                "machine_no", "machine_name"
+            )
         )
 
         # สร้าง list สำหรับ template
@@ -816,8 +867,8 @@ def productivity_view(request):
                 {
                     "machine_no": m_no,
                     "machine_name": machine_names.get(m_no, "") or "-",
-                    "daily": daily_list,         # [qty_day1, qty_day2, ...]
-                    "total": info["total"],      # รวมทุกวัน
+                    "daily": daily_list,  # [qty_day1, qty_day2, ...]
+                    "total": info["total"],  # รวมทุกวัน
                 }
             )
 
@@ -1055,6 +1106,7 @@ def dashboard_preform_order(request):
     url = reverse("dashboard")
     return redirect(f"{url}?department=Preform&view=order")
 
+
 @login_required
 def export_productivity_excel(request):
     # 1) รับ filter (เหมือนหน้า Dashboard)
@@ -1091,9 +1143,18 @@ def export_productivity_excel(request):
     ws.title = "Productivity Report"
 
     headers = [
-        "Lot No", "Part No", "Customer", "Department",
-        "Machine", "Type", "Target", "Produced",
-        "Progress (%)", "Boxes", "Status", "Last Scan"
+        "Lot No",
+        "Part No",
+        "Customer",
+        "Department",
+        "Machine",
+        "Type",
+        "Target",
+        "Produced",
+        "Progress (%)",
+        "Boxes",
+        "Status",
+        "Last Scan",
     ]
     ws.append(headers)
 
@@ -1115,22 +1176,26 @@ def export_productivity_excel(request):
             status = "Running"
 
         # เวลา Scan
-        last_scan_str = lot.last_scan.strftime("%Y-%m-%d %H:%M") if lot.last_scan else ""
+        last_scan_str = (
+            lot.last_scan.strftime("%Y-%m-%d %H:%M") if lot.last_scan else ""
+        )
 
-        ws.append([
-            lot.lot_no,
-            lot.part_no,
-            lot.customer,
-            lot.department,
-            lot.machine_no,
-            lot.type or "Order",
-            target,
-            produced,
-            round(progress, 2),
-            boxes,
-            status,
-            last_scan_str,
-        ])
+        ws.append(
+            [
+                lot.lot_no,
+                lot.part_no,
+                lot.customer,
+                lot.department,
+                lot.machine_no,
+                lot.type or "Order",
+                target,
+                produced,
+                round(progress, 2),
+                boxes,
+                status,
+                last_scan_str,
+            ]
+        )
 
     # 5) ปรับความกว้างคอลัมน์ให้พอดี
     for col in range(1, len(headers) + 1):
@@ -1145,6 +1210,7 @@ def export_productivity_excel(request):
 
     wb.save(response)
     return response
+
 
 @login_required
 def import_excel(request):
@@ -1180,8 +1246,12 @@ def import_excel(request):
                     Machine.objects.update_or_create(
                         machine_no=str(row["Machine No."]).strip(),
                         defaults={
-                            "machine_name": str(row.get("Machine Name", "")).strip(),
-                            "department": str(row.get("Department", "")).strip(),
+                            "machine_name": str(
+                                row.get("Machine Name", "")
+                            ).strip(),
+                            "department": str(
+                                row.get("Department", "")
+                            ).strip(),
                         },
                     )
                     count += 1
@@ -1196,20 +1266,28 @@ def import_excel(request):
                         continue
 
                     prod_qty = int(
-                        pd.to_numeric(row.get("Production Quantity"), errors="coerce")
+                        pd.to_numeric(
+                            row.get("Production Quantity"), errors="coerce"
+                        )
                         or 0
                     )
                     pieces_per_box = int(
-                        pd.to_numeric(row.get("จำนวนบรรจุต่อกล่อง"), errors="coerce")
+                        pd.to_numeric(
+                            row.get("จำนวนบรรจุต่อกล่อง"), errors="coerce"
+                        )
                         or 0
                     )
 
                     Lot.objects.update_or_create(
                         lot_no=str(row["Lot No."]).strip(),
                         defaults={
-                            "part_no": str(row.get("A.Best Part No.", "")).strip(),
+                            "part_no": str(
+                                row.get("A.Best Part No.", "")
+                            ).strip(),
                             "customer": str(row.get("Customer", "")).strip(),
-                            "description": str(row.get("Description", "")).strip(),
+                            "description": str(
+                                row.get("Description", "")
+                            ).strip(),
                             "customer_part_no": str(
                                 row.get("Customer Part No.", "")
                             ).strip(),
@@ -1218,8 +1296,12 @@ def import_excel(request):
                             "production_quantity": prod_qty,
                             "target": prod_qty,
                             "pieces_per_box": pieces_per_box,
-                            "department": str(row.get("Department", "Overall")).strip(),
-                            "machine_no": str(row.get("Machine No.", "")).strip(),
+                            "department": str(
+                                row.get("Department", "Overall")
+                            ).strip(),
+                            "machine_no": str(
+                                row.get("Machine No.", "")
+                            ).strip(),
                             "type": str(row.get("Type", "Order")).strip(),
                         },
                     )
@@ -1242,8 +1324,9 @@ def import_excel(request):
 
     return render(request, "production/import_excel.html")
 
+
 class Command(BaseCommand):
-    help = "Import data from 'A.Best - Production Tracker.x lsx' into Django models"
+    help = "Import data from 'A.Best - Production Tracker.xlsx' into Django models"
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -1279,13 +1362,18 @@ class Command(BaseCommand):
         required = ["Machine No.", "Machine Name", "Department"]
         for r in required:
             if r not in idx:
-                self.stdout.write(self.style.WARNING(f"Column '{r}' not found in Machine List"))
+                self.stdout.write(
+                    self.style.WARNING(f"Column '{r}' not found in Machine List")
+                )
+
         count = 0
         for row in ws.iter_rows(min_row=2, values_only=True):
             machine_no = row[idx.get("Machine No.")] if "Machine No." in idx else None
             if not machine_no:
                 continue
-            machine_name = row[idx.get("Machine Name")] if "Machine Name" in idx else ""
+            machine_name = (
+                row[idx.get("Machine Name")] if "Machine Name" in idx else ""
+            )
             department = row[idx.get("Department")] if "Department" in idx else ""
 
             Machine.objects.update_or_create(
@@ -1316,18 +1404,30 @@ class Command(BaseCommand):
             if not lot_no:
                 continue
 
-            abest_part_no = row[idx.get("A.Best Part No.")] if "A.Best Part No." in idx else ""
+            abest_part_no = (
+                row[idx.get("A.Best Part No.")] if "A.Best Part No." in idx else ""
+            )
             customer = row[idx.get("Customer")] if "Customer" in idx else ""
             description = row[idx.get("Description")] if "Description" in idx else ""
-            customer_part_no = row[idx.get("Customer Part No.")] if "Customer Part No." in idx else ""
+            customer_part_no = (
+                row[idx.get("Customer Part No.")] if "Customer Part No." in idx else ""
+            )
             po_no = row[idx.get("PO No.")] if "PO No." in idx else ""
             remark = row[idx.get("Remark")] if "Remark" in idx else ""
             department = row[idx.get("Department")] if "Department" in idx else ""
             machine_no = row[idx.get("Machine No.")] if "Machine No." in idx else ""
             lot_type = row[idx.get("Type")] if "Type" in idx else "Order"
 
-            prod_qty = row[idx.get("Production Quantity")] if "Production Quantity" in idx else 0
-            pieces_per_box = row[idx.get("จำนวนบรรจุต่อกล่อง")] if "จำนวนบรรจุต่อกล่อง" in idx else 0
+            prod_qty = (
+                row[idx.get("Production Quantity")]
+                if "Production Quantity" in idx
+                else 0
+            )
+            pieces_per_box = (
+                row[idx.get("จำนวนบรรจุต่อกล่อง")]
+                if "จำนวนบรรจุต่อกล่อง" in idx
+                else 0
+            )
             target = row[idx.get("Target")] if "Target" in idx else None
 
             try:
@@ -1441,7 +1541,8 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(f"Imported {count} scan records from Collect.")
         )
-        
+
+
 @login_required
 def lot_chart_data(request, lot_no):
     """คืนค่า labels/daily/cumulative เป็น JSON ตาม agg"""
@@ -1452,26 +1553,21 @@ def lot_chart_data(request, lot_no):
 
     lot = get_object_or_404(Lot, lot_no=lot_no)
 
-    scans = (
-        ScanRecord.objects
-        .filter(lot=lot)
-        .order_by("scanned_at")
-    )
+    scans = ScanRecord.objects.filter(lot=lot).order_by("scanned_at")
 
     if not scans.exists():
-        return JsonResponse({
-            "labels": [],
-            "daily": [],
-            "cumulative": [],
-        })
-
-    from django.db.models.functions import TruncHour, TruncDate, TruncMonth
+        return JsonResponse(
+            {
+                "labels": [],
+                "daily": [],
+                "cumulative": [],
+            }
+        )
 
     base_qs = scans
     if agg == "day":
         bucket_qs = (
-            base_qs
-            .annotate(bucket=TruncDate("scanned_at"))
+            base_qs.annotate(bucket=TruncDate("scanned_at"))
             .values("bucket")
             .annotate(total_qty=Sum("qty"))
             .order_by("bucket")
@@ -1479,8 +1575,7 @@ def lot_chart_data(request, lot_no):
         date_fmt = "%d/%m"
     elif agg == "month":
         bucket_qs = (
-            base_qs
-            .annotate(bucket=TruncMonth("scanned_at"))
+            base_qs.annotate(bucket=TruncMonth("scanned_at"))
             .values("bucket")
             .annotate(total_qty=Sum("qty"))
             .order_by("bucket")
@@ -1488,8 +1583,7 @@ def lot_chart_data(request, lot_no):
         date_fmt = "%m/%Y"
     else:  # hour
         bucket_qs = (
-            base_qs
-            .annotate(bucket=TruncHour("scanned_at"))
+            base_qs.annotate(bucket=TruncHour("scanned_at"))
             .values("bucket")
             .annotate(total_qty=Sum("qty"))
             .order_by("bucket")
@@ -1508,8 +1602,10 @@ def lot_chart_data(request, lot_no):
         running += q
         cumulative.append(running)
 
-    return JsonResponse({
-        "labels": labels,
-        "daily": daily,
-        "cumulative": cumulative,
-    })
+    return JsonResponse(
+        {
+            "labels": labels,
+            "daily": daily,
+            "cumulative": cumulative,
+        }
+    )

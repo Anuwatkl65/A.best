@@ -147,6 +147,90 @@ function applyDepartmentFilter(rows) {
     return "ready";
   }
 
+  // ---------- Machine View: mini charts ----------
+(function () {
+  // ต้องมี Chart.js โหลดมาก่อน (base.html มี <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>)
+  if (typeof Chart === "undefined") return;
+
+  const cards = document.querySelectorAll("[data-mini-chart-url]");
+
+  if (!cards.length) return; // ไม่ได้อยู่หน้า Machine View ก็จบ
+
+  cards.forEach((card) => {
+    const url = card.dataset.miniChartUrl;
+    const canvas = card.querySelector("canvas.machine-mini-chart");
+    if (!url || !canvas) return;
+
+    const ctx = canvas.getContext("2d");
+
+    fetch(url)
+      .then((res) => res.json())
+      .then((data) => {
+        const labels = data.labels || [];
+        const daily = data.daily || [];
+
+        if (!labels.length || !daily.length) {
+          // ไม่มีข้อมูล ไม่ต้องวาด
+          return;
+        }
+
+        // ป้องกันไม่ให้ chart ซ้อนกัน ถ้า reload JS ซ้ำ
+        if (canvas._miniChartInstance) {
+          canvas._miniChartInstance.destroy();
+        }
+
+        const chart = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                data: daily,
+                backgroundColor: "rgba(129, 140, 248, 0.85)", // ม่วง
+                borderWidth: 0,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                enabled: true,
+                callbacks: {
+                  label: function (ctx) {
+                    const raw = ctx.raw;
+                    const formatted =
+                      raw && raw.toLocaleString ? raw.toLocaleString() : raw;
+                    return formatted + " pcs";
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                display: false,
+              },
+              y: {
+                display: false,
+              },
+            },
+            layout: {
+              padding: 0,
+            },
+          },
+        });
+
+        canvas._miniChartInstance = chart;
+      })
+      .catch((err) => {
+        console.error("Error loading mini chart:", err);
+      });
+  });
+})();
+
+
   function badge(status) {
     return {
       active: "bg-amber-100 text-amber-700",
