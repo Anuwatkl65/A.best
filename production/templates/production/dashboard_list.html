@@ -33,66 +33,64 @@
     </div>
 
     {% if from_view == "order" %}
-      {# เคสนี้: เข้าหน้านี้ผ่าน machine_detail จาก Order View #}
+      {# เข้าผ่าน Order View #}
       <a href="{% url 'dashboard' %}?department={{ department }}&view=order"
-         class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-all shadow-sm">
+        class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-all shadow-sm">
         <span class="material-symbols-outlined text-[18px]">arrow_back</span>
         กลับไป Order View
       </a>
     {% else %}
-      {# เคสปกติเดิม ๆ #}
       {% if department == 'Overall' %}
         <a href="{% url 'department_select' %}"
-           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-all shadow-sm">
+          class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-all shadow-sm">
           <span class="material-symbols-outlined text-[18px]">arrow_back</span>
           กลับไปเลือกแผนก
         </a>
       {% else %}
         <a href="{% url 'view_select' %}?department={{ department }}"
-           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-all shadow-sm">
+          class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-all shadow-sm">
           <span class="material-symbols-outlined text-[18px]">arrow_back</span>
           กลับไปเลือกมุมมอง
         </a>
       {% endif %}
     {% endif %}
-
   </div>
 
   <!-- Type filter -->
   <div class="grid grid-cols-3 md:grid-cols-6 gap-2 mb-3">
 
     <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
-       class="mini-filter {% if active_type == 'all' %}mini-filter-active ring-2 ring-purple-500{% endif %}">
+      class="mini-filter {% if active_type == 'all' %}mini-filter-active ring-2 ring-purple-500{% endif %}">
       <span class="text-xs text-gray-500 font-bold uppercase">All</span>
       <span class="text-lg font-bold text-gray-800">{{ type_counts.all }}</span>
     </a>
 
     <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=order{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
-       class="mini-filter bg-green-50 border-green-200 hover:bg-green-100 {% if active_type == 'order' %}ring-2 ring-green-500{% endif %}">
+      class="mini-filter bg-green-50 border-green-200 hover:bg-green-100 {% if active_type == 'order' %}ring-2 ring-green-500{% endif %}">
       <span class="text-xs text-green-600 font-bold uppercase">Order</span>
       <span class="text-lg font-bold text-gray-800">{{ type_counts.order }}</span>
     </a>
 
     <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=sample{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
-       class="mini-filter bg-yellow-50 border-yellow-200 hover:bg-yellow-100 {% if active_type == 'sample' %}ring-2 ring-yellow-500{% endif %}">
+      class="mini-filter bg-yellow-50 border-yellow-200 hover:bg-yellow-100 {% if active_type == 'sample' %}ring-2 ring-yellow-500{% endif %}">
       <span class="text-xs text-yellow-600 font-bold uppercase">Sample</span>
       <span class="text-lg font-bold text-gray-800">{{ type_counts.sample }}</span>
     </a>
 
     <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=reserved{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
-       class="mini-filter bg-blue-50 border-blue-200 hover:bg-blue-100 {% if active_type == 'reserved' %}ring-2 ring-blue-500{% endif %}">
+      class="mini-filter bg-blue-50 border-blue-200 hover:bg-blue-100 {% if active_type == 'reserved' %}ring-2 ring-blue-500{% endif %}">
       <span class="text-xs text-blue-600 font-bold uppercase">Reserved</span>
       <span class="text-lg font-bold text-gray-800">{{ type_counts.reserved }}</span>
     </a>
 
     <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=extra{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
-       class="mini-filter bg-orange-50 border-orange-200 hover:bg-orange-100 {% if active_type == 'extra' %}ring-2 ring-orange-500{% endif %}">
+      class="mini-filter bg-orange-50 border-orange-200 hover:bg-orange-100 {% if active_type == 'extra' %}ring-2 ring-orange-500{% endif %}">
       <span class="text-xs text-orange-600 font-bold uppercase">Extra</span>
       <span class="text-lg font-bold text-gray-800">{{ type_counts.extra }}</span>
     </a>
 
     <a href="{% url 'dashboard' %}?department={{ department }}&view=list&lot_type=claim{% if active_status and active_status != 'all' %}&status={{ active_status }}{% endif %}"
-       class="mini-filter bg-pink-50 border-pink-200 hover:bg-pink-100 {% if active_type == 'claim' %}ring-2 ring-pink-500{% endif %}">
+      class="mini-filter bg-pink-50 border-pink-200 hover:bg-pink-100 {% if active_type == 'claim' %}ring-2 ring-pink-500{% endif %}">
       <span class="text-xs text-pink-600 font-bold uppercase">Claim</span>
       <span class="text-lg font-bold text-gray-800">{{ type_counts.claim }}</span>
     </a>
@@ -104,36 +102,61 @@
 
     <div class="flex bg-white rounded-xl border border-gray-200 p-1 shadow-sm flex-shrink-0 overflow-x-auto">
       <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_type != 'all' %}&lot_type={{ active_type }}{% endif %}&status=all"
-         class="status-tab {% if active_status == 'all' %}bg-purple-300 text-gray-1500 font-bold{% endif %}">
+        class="status-tab {% if active_status == 'all' %}bg-purple-300 text-gray-1500 font-bold{% endif %}">
         รวม: {{ summary.total_lots }}
       </a>
       <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_type != 'all' %}&lot_type={{ active_type }}{% endif %}&status=waiting"
-         class="status-tab text-red-600 {% if active_status == 'waiting' %}bg-red-300 font-bold ring-1 ring-red-200{% endif %}">
+        class="status-tab text-red-600 {% if active_status == 'waiting' %}bg-red-300 font-bold ring-1 ring-red-200{% endif %}">
         รอ: {{ summary.waiting }}
       </a>
       <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_type != 'all' %}&lot_type={{ active_type }}{% endif %}&status=in_progress"
-         class="status-tab text-orange-600 {% if active_status == 'in_progress' %}bg-orange-300 font-bold ring-1 ring-orange-200{% endif %}">
+        class="status-tab text-orange-600 {% if active_status == 'in_progress' %}bg-orange-300 font-bold ring-1 ring-orange-200{% endif %}">
         กำลังผลิต: {{ summary.in_progress }}
       </a>
       <a href="{% url 'dashboard' %}?department={{ department }}&view=list{% if active_type != 'all' %}&lot_type={{ active_type }}{% endif %}&status=finished"
-         class="status-tab text-green-600 {% if active_status == 'finished' %}bg-green-300 font-bold ring-1 ring-green-200{% endif %}">
+        class="status-tab text-green-600 {% if active_status == 'finished' %}bg-green-300 font-bold ring-1 ring-green-200{% endif %}">
         เสร็จ: {{ summary.finished }}
       </a>
     </div>
 
-    <form method="get" class="flex-grow">
+    <!-- ฟอร์มค้นหา + ปุ่มเคลียร์ -->
+    <form method="get" class="flex-grow" data-submit-on-clear="true">
       <input type="hidden" name="department" value="{{ department }}">
       <input type="hidden" name="view" value="list">
-      {% if active_type != 'all' %}<input type="hidden" name="lot_type" value="{{ active_type }}">{% endif %}
-      {% if active_status and active_status != 'all' %}<input type="hidden" name="status" value="{{ active_status }}">{% endif %}
+      {% if active_type != 'all' %}
+        <input type="hidden" name="lot_type" value="{{ active_type }}">
+      {% endif %}
+      {% if active_status and active_status != 'all' %}
+        <input type="hidden" name="status" value="{{ active_status }}">
+      {% endif %}
 
       <div class="relative h-full">
+        <!-- ไอคอนค้นหา -->
         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
           <span class="material-symbols-outlined text-[20px]">search</span>
         </span>
-        <input type="text" name="q" value="{{ search_query }}"
-               placeholder="ค้นหา Lot, Part, Customer..."
-               class="w-full h-full min-h[42px] pl-10 pr-4 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 shadow-sm">
+
+        <!-- ช่องค้นหา -->
+        <input
+          id="lot_search"
+          type="text"
+          name="q"
+          value="{{ q }}"
+          placeholder="ค้นหา Lot, Part, Customer..."
+          class="w-full h-full min-h-[42px] pl-10 pr-10 rounded-xl border border-gray-200 text-sm
+                focus:ring-2 focus:ring-purple-500 focus:border-purple-500 shadow-sm"
+        >
+
+        <!-- ปุ่มเคลียร์ -->
+        <button
+          type="button"
+          data-clear-target="lot_search"
+          class="absolute right-3 top-1/2 -translate-y-1/2
+                w-6 h-6 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center
+                hover:bg-purple-100 hover:text-purple-700"
+        >
+          <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
       </div>
     </form>
   </div>
@@ -152,19 +175,26 @@
               <div class="text-[15px] font-bold text-gray-900 group-hover:text-purple-700 transition-colors">
                 {{ lot.lot_no }}
               </div>
-              <div class="text-[11px] text-gray-400 flex items-center gap-1">
+
+              <!-- แสดงช่วง สแกนครั้งแรก – สแกนล่าสุด (สีดำ) -->
+              <div class="text-[11px] text-gray-900 flex items-center gap-1">
                 <span class="material-symbols-outlined text-[12px]">calendar_today</span>
-                {{ lot.first_scan|date:"d/m/y"|default:"-" }}
+                {% if lot.first_scan or lot.last_scan %}
+                  {{ lot.first_scan|date:"d/m/y"|default:"-" }} – {{ lot.last_scan|date:"d/m/y"|default:"-" }}
+                {% else %}
+                  -
+                {% endif %}
               </div>
             </div>
+
             <span class="badge-type badge-{{ lot.type|lower|default:'order' }}">
               {{ lot.type|default:"Order" }}
             </span>
           </div>
 
-          <!-- Detail section (UI ใหม่) -->
+          <!-- Detail section -->
           <div class="grid grid-cols-2 gap-y-2 gap-x-4 text-xs mb-3">
-            <!-- ซ้าย: Customer > Part No > Description > Prod Qty > จำนวนบรรจุ -->
+            <!-- ซ้าย -->
             <div class="space-y-1">
               <div>
                 <span class="text-gray-400 block text-[10px]">Customer</span>
@@ -198,7 +228,7 @@
               </div>
             </div>
 
-            <!-- ขวา: Department > Machine > Target -->
+            <!-- ขวา -->
             <div class="space-y-1 text-right">
               <div>
                 <span class="text-gray-400 block text-[10px]">Department</span>
@@ -245,7 +275,7 @@
                           {% else %}
                             bg-gray-300
                           {% endif %}"
-                   style="width: {{ lot.progress }}%;"></div>
+                  style="width: {{ lot.progress }}%;"></div>
             </div>
           </div>
 
@@ -301,7 +331,7 @@
     color: #6b7280;
     border-radius: 8px;
     white-space: nowrap;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
   }
   .status-tab:hover {
     background-color: #f9fafb;

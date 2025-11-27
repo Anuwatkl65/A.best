@@ -22,6 +22,7 @@
         }
       }
     }
+    
   </script>
 
   <style>
@@ -116,6 +117,19 @@
         console.warn("sessionStorage not available:", e);
       }
     })();
+    
+      // ปุ่มเคลียร์ช่องค้นหา / ช่อง input ทั่วไป
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('button[data-clear-target]');
+    if (!btn) return;
+
+    const targetId = btn.getAttribute('data-clear-target');
+    const input = document.getElementById(targetId);
+
+    if (input) {
+      input.value = '';  // เคลียร์ค่าอย่างเดียว
+    }
+  });
 
     function goBack() {
       try {

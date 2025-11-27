@@ -14,7 +14,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "production",
-    'django.contrib.humanize'
+    "django.contrib.humanize",
 ]
 
 MIDDLEWARE = [
@@ -23,6 +23,9 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "production.middleware.IdleTimeoutMiddleware",
+
+
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -32,7 +35,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],  # ใช้ templates ภายในแอป
+        "DIRS": [], 
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -67,6 +70,15 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-LOGIN_URL = '/login/'
-LOGIN_REDIRECT_URL = '/home/'
-LOGOUT_REDIRECT_URL = '/login/'
+LOGIN_URL = "/login/"
+LOGIN_REDIRECT_URL = "/home/"
+LOGOUT_REDIRECT_URL = "/login/"
+
+# อายุ cookie ของ session สูงสุด (หน่วยเป็นวินาที)
+SESSION_COOKIE_AGE = 3000  # 5 นาที
+
+# ให้ Django ต่ออายุ session ทุกครั้งที่มี request
+SESSION_SAVE_EVERY_REQUEST = True
+
+# จำกัดเวลาว่าง (idle) สูงสุด ถ้าไม่ขยับเกินเวลานี้ให้ logout (วินาที)
+IDLE_SESSION_TIMEOUT = 3000  # 5 นาที
