@@ -13,16 +13,16 @@ from django.db.models.functions import TruncDate, TruncHour, TruncMonth, Coalesc
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
-from django.utils.timezone import now
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.sessions.models import Session
+from django.contrib.auth.models import User
+from django.utils.timezone import now
+
 from openpyxl.utils import get_column_letter
 
 from .models import Lot, ScanRecord, UserProfile, Machine
-from datetime import datetime
 
-from django.contrib.sessions.models import Session
-from django.contrib.auth.models import User
-from django.utils import timezone
 
 MONTH_TH = {
     1: "ม.ค.", 2: "ก.พ.", 3: "มี.ค.", 4: "เม.ย.",
@@ -191,9 +191,11 @@ def view_select(request):
 
 
 @login_required
+@login_required
 def dashboard(request):
     dept = request.GET.get("department", "Overall")
     view_type = request.GET.get("view", "list")  # list / machine / order / productivity
+    from_view = request.GET.get("from_view")     # ใช้ส่งต่อไปถึง lot_detail / dashboard_list
 
     # ---------- ถ้าเป็น Productivity ให้เด้งไปหน้าใหม่ทันที ----------
     if view_type == "productivity":
@@ -396,7 +398,7 @@ def dashboard(request):
         machine_summaries = list(machine_map.values())
 
     # ------------------------------------------------------
-    #  Machine cards สำหรับ Machine View (ของเดิม)
+    #  Machine cards สำหรับ Machine View
     # ------------------------------------------------------
     if view_type == "machine":
         machine_map = {}
@@ -486,8 +488,11 @@ def dashboard(request):
         "machine_summaries": machine_summaries,
         # สำหรับ Machine View
         "machines": machines,
+        # ใช้ส่งต่อไป list → lot_detail
+        "from_view": from_view,
     }
     return render(request, template_name, context)
+
 
 # ---------- Machine detail (ใช้ template list เดิม) ----------
 
@@ -522,8 +527,6 @@ def machine_detail(request, machine_no):
     return render(request, "production/dashboard_list.html", ctx)
 
 
-
-
 # ---------- Lot detail + Chart ----------
 
 @login_required
@@ -555,14 +558,22 @@ def lot_detail(request, lot_no):
     from_view = request.GET.get("from_view", "").strip()
 
     # ------------------ คำนวณ back_url + back_label ------------------
-    if machine_no:
-        base_url = reverse("machine_detail", args=[machine_no])
-        params = [f"department={dept_param}"]
-        if from_view:
-            params.append(f"from_view={from_view}")
-        back_url = f"{base_url}?{'&'.join(params)}"
-        back_label = "กลับไป List View"
+    # กรณีที่มาจาก Machine View โดยตรง → กลับไปหน้า machine_detail
+    if back_view == "machine" or from_view == "machine":
+        if machine_no:
+            base_url = reverse("machine_detail", args=[machine_no])
+            params = [f"department={dept_param}"]
+            if from_view:
+                params.append(f"from_view={from_view}")
+            back_url = f"{base_url}?{'&'.join(params)}"
+        else:
+            dash_url = reverse("dashboard")
+            params = [f"department={dept_param}", "view=machine"]
+            back_url = f"{dash_url}?{'&'.join(params)}"
+        back_label = "กลับไป Machine View"
+
     else:
+        # กรณีปกติ: กลับไปหน้า dashboard ตาม view เดิม (list / order / productivity)
         dash_url = reverse("dashboard")
         params = [f"department={dept_param}", f"view={back_view}"]
 
@@ -573,19 +584,18 @@ def lot_detail(request, lot_no):
                 params.append(f"status={status}")
             if search_q:
                 params.append(f"q={search_q}")
+            if machine_no:
+                params.append(f"machine_no={machine_no}")
             if back_view == "order" and layout:
                 params.append(f"layout={layout}")
 
         if from_view:
             params.append(f"from_view={from_view}")
 
-        qs = "&".join(params)
-        back_url = f"{dash_url}?{qs}"
+        back_url = f"{dash_url}?{'&'.join(params)}"
 
         if back_view == "order":
             back_label = "กลับไป Order View"
-        elif back_view == "machine":
-            back_label = "กลับไป Machine View"
         elif back_view == "productivity":
             back_label = "กลับไป Productivity"
         else:

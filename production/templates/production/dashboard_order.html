@@ -119,32 +119,32 @@
 
           <!-- per-type buttons INSIDE machine card (link to List View) -->
           <div class="mt-5 flex flex-wrap justify-center gap-2">
-            <a href="?department={{ department }}&view=list&machine_no={{ m.machine_no }}&lot_type=order"
-               class="machine-type-chip chip-order">
+              <a href="?department={{ department }}&view=list&machine_no={{ m.machine_no }}&lot_type=order&from_view=order"
+                class="machine-type-chip chip-order">
               <span class="chip-label">Order</span>
               <span class="chip-value">{{ m.types.Order.target|default:0|intcomma }}</span>
             </a>
 
-            <a href="?department={{ department }}&view=list&machine_no={{ m.machine_no }}&lot_type=sample"
-               class="machine-type-chip chip-sample">
+              <a href="?department={{ department }}&view=list&machine_no={{ m.machine_no }}&lot_type=sample&from_view=order"
+                class="machine-type-chip chip-sample">
               <span class="chip-label">Sample</span>
               <span class="chip-value">{{ m.types.Sample.target|default:0|intcomma }}</span>
             </a>
 
-            <a href="?department={{ department }}&view=list&machine_no={{ m.machine_no }}&lot_type=reserved"
-               class="machine-type-chip chip-reserved">
+              <a href="?department={{ department }}&view=list&machine_no={{ m.machine_no }}&lot_type=reserved&from_view=order"
+                class="machine-type-chip chip-reserved">
               <span class="chip-label">Reserved</span>
               <span class="chip-value">{{ m.types.Reserved.target|default:0|intcomma }}</span>
             </a>
 
-            <a href="?department={{ department }}&view=list&machine_no={{ m.machine_no }}&lot_type=extra"
-               class="machine-type-chip chip-extra">
+              <a href="?department={{ department }}&view=list&machine_no={{ m.machine_no }}&lot_type=extra&from_view=order"
+                class="machine-type-chip chip-extra">
               <span class="chip-label">Extra</span>
               <span class="chip-value">{{ m.types.Extra.target|default:0|intcomma }}</span>
             </a>
 
-            <a href="?department={{ department }}&view=list&machine_no={{ m.machine_no }}&lot_type=claim"
-               class="machine-type-chip chip-claim">
+              <a href="?department={{ department }}&view=list&machine_no={{ m.machine_no }}&lot_type=claim&from_view=order"
+                class="machine-type-chip chip-claim">
               <span class="chip-label">Claim</span>
               <span class="chip-value">{{ m.types.Claim.target|default:0|intcomma }}</span>
             </a>

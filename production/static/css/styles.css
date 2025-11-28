@@ -89,7 +89,6 @@
   -webkit-font-smoothing: antialiased;
 }
 
-
 /* --- ตาราง/การ์ด dashboard ให้สม่ำเสมอ --- */
 .table{
   width:100%; border-collapse:separate; border-spacing:0;
@@ -106,3 +105,28 @@
 .text-center{ text-align:center } .text-right{ text-align:right }
 .hidden{ display:none }
 
+/* =====================================================
+   ปรับสี + ขยายฟอนต์ ให้การ์ดใน List View อ่านง่ายขึ้น
+   ===================================================== */
+
+/* ทำให้ text-gray-500 เข้มขึ้น (เทาประมาณ gray-700) */
+.text-gray-500 {
+  color: #374151 !important;
+}
+
+/* ทำให้ text-gray-400 เข้มขึ้นนิดหน่อย (เทาประมาณ gray-600) */
+.text-gray-400 {
+  color: #4b5563 !important;
+}
+
+/* ขยายขนาดฟอนต์พื้นฐานนิดหน่อยทั้งระบบ
+   (ใช้กับตัวที่เป็น text-xs, text-sm, text-base ในการ์ด) */
+.text-xs {
+  font-size: 0.8rem !important;   /* เดิม ~0.75rem */
+}
+.text-sm {
+  font-size: 0.95rem !important;  /* เดิม 0.875rem */
+}
+.text-base {
+  font-size: 1.05rem !important;  /* เดิม 1rem */
+}
