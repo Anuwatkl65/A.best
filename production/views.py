@@ -19,6 +19,7 @@ from django.contrib.sessions.models import Session
 from django.contrib.auth.models import User
 from django.utils.timezone import now
 
+
 from openpyxl.utils import get_column_letter
 
 from .models import Lot, ScanRecord, UserProfile, Machine
@@ -191,7 +192,6 @@ def view_select(request):
 
 
 @login_required
-@login_required
 def dashboard(request):
     dept = request.GET.get("department", "Overall")
     view_type = request.GET.get("view", "list")  # list / machine / order / productivity
@@ -290,11 +290,7 @@ def dashboard(request):
 
     # ---------- grouped_lots (ใช้กับ Order View แบบเดิม) ----------
     grouped_lots = {
-        "Order": [],
-        "Sample": [],
-        "Reserved": [],
-        "Extra": [],
-        "Claim": [],
+        "Order": [], "Sample": [], "Reserved": [], "Extra": [], "Claim": [],
     }
     for lot in lots:
         t = (lot["type"] or "Order").title()
@@ -306,28 +302,23 @@ def dashboard(request):
     overall_qty_by_type = {
         "Order": (
             qs_for_counts.filter(type__iexact="Order")
-            .aggregate(s=Sum("target"))["s"]
-            or 0
+            .aggregate(s=Sum("target"))["s"] or 0
         ),
         "Sample": (
             qs_for_counts.filter(type__iexact="Sample")
-            .aggregate(s=Sum("target"))["s"]
-            or 0
+            .aggregate(s=Sum("target"))["s"] or 0
         ),
         "Reserved": (
             qs_for_counts.filter(type__iexact="Reserved")
-            .aggregate(s=Sum("target"))["s"]
-            or 0
+            .aggregate(s=Sum("target"))["s"] or 0
         ),
         "Extra": (
             qs_for_counts.filter(type__iexact="Extra")
-            .aggregate(s=Sum("target"))["s"]
-            or 0
+            .aggregate(s=Sum("target"))["s"] or 0
         ),
         "Claim": (
             qs_for_counts.filter(type__iexact="Claim")
-            .aggregate(s=Sum("target"))["s"]
-            or 0
+            .aggregate(s=Sum("target"))["s"] or 0
         ),
     }
     overall_total_target = sum(overall_qty_by_type.values())
@@ -346,13 +337,11 @@ def dashboard(request):
         elif dept != "Overall":
             machine_qs = machine_qs.filter(department__icontains=department_label)
 
-        # map: machine_no -> label (เช่น "เครื่องกระปุก (ใหม่)")
         machine_info = {
             m.machine_no: (m.machine_name or "เครื่องจักร")
             for m in machine_qs
         }
 
-        # 2) รวมข้อมูล lot ตามเครื่อง
         machine_map = {}
 
         for lot in lots:
@@ -387,23 +376,21 @@ def dashboard(request):
 
             ms["lots"].append(lot)
 
-        # 3) คำนวณ progress ต่อเครื่อง
         for ms in machine_map.values():
             if ms["total_target"] > 0:
                 ms["progress"] = round(ms["total_produced"] * 100 / ms["total_target"])
             else:
                 ms["progress"] = 0
 
-        # แปลงเป็น list ส่งให้ template
         machine_summaries = list(machine_map.values())
 
     # ------------------------------------------------------
-    #  Machine cards สำหรับ Machine View
+    #  Machine cards สำหรับ Machine View  (แสดงทุกเครื่องจาก Machine List)
     # ------------------------------------------------------
     if view_type == "machine":
         machine_map = {}
 
-        # รวม lot ตามหมายเลขเครื่อง
+        # 1) รวมข้อมูลจาก lot ก่อน (เหมือนเดิม)
         for lot in lots:
             m_no = lot["machine_no"] or "-"
             info = machine_map.setdefault(
@@ -417,7 +404,7 @@ def dashboard(request):
             )
             info["lots"].append(lot)
 
-        # หา active lot + สถานะ
+        # หา active lot + status จาก lot ที่มีอยู่
         for m_no, info in machine_map.items():
             running_lot = [x for x in info["lots"] if 0 < x["progress"] < 100]
             finished_lot = [x for x in info["lots"] if x["progress"] >= 100]
@@ -425,27 +412,21 @@ def dashboard(request):
             if running_lot:
                 active = sorted(
                     running_lot,
-                    key=lambda x: x["last_scan"]
-                    or x["first_scan"]
-                    or datetime.min,
+                    key=lambda x: x["last_scan"] or x["first_scan"] or datetime.min,
                 )[-1]
                 info["active_lot"] = active
                 info["status"] = "Running"
             elif finished_lot:
                 active = sorted(
                     finished_lot,
-                    key=lambda x: x["last_scan"]
-                    or x["first_scan"]
-                    or datetime.min,
+                    key=lambda x: x["last_scan"] or x["first_scan"] or datetime.min,
                 )[-1]
                 info["active_lot"] = active
                 info["status"] = "Finished"
             elif info["lots"]:
                 active = sorted(
                     info["lots"],
-                    key=lambda x: x["last_scan"]
-                    or x["first_scan"]
-                    or datetime.min,
+                    key=lambda x: x["last_scan"] or x["first_scan"] or datetime.min,
                 )[-1]
                 info["active_lot"] = active
                 info["status"] = "Ready"
@@ -453,6 +434,24 @@ def dashboard(request):
                 info["active_lot"] = None
                 info["status"] = "Ready"
 
+        # 2) ดึงรายการเครื่องจากตาราง Machine แล้วเติมเครื่องที่ "ไม่มี lot" ให้ครบ
+        master_qs = Machine.objects.all()
+        if dept == "Preform":
+            master_qs = master_qs.filter(department__icontains="พรีฟอร์ม")
+        elif dept != "Overall":
+            master_qs = master_qs.filter(department__icontains=department_label)
+
+        for m in master_qs:
+            m_no = m.machine_no or "-"
+            if m_no not in machine_map:
+                machine_map[m_no] = {
+                    "machine_no": m_no,
+                    "lots": [],
+                    "active_lot": None,
+                    "status": "Ready",   # ยังไม่มีงาน → Ready
+                }
+
+        # 3) แปลงเป็น list เรียงตามรหัสเครื่อง
         machines = sorted(
             machine_map.values(),
             key=lambda x: x["machine_no"] or "",
@@ -492,6 +491,7 @@ def dashboard(request):
         "from_view": from_view,
     }
     return render(request, template_name, context)
+
 
 
 # ---------- Machine detail (ใช้ template list เดิม) ----------
@@ -1846,3 +1846,220 @@ def _kick_user_sessions(user_id: int):
         data = s.get_decoded()
         if data.get("_auth_user_id") == str(user_id):
             s.delete()
+
+@login_required
+def machine_mini_chart(request, machine_no):
+    """
+    คืนข้อมูลกราฟ mini chart ของแต่ละเครื่อง (รายชั่วโมงของวันนี้)
+    response: { "labels": [...], "daily": [...] }
+    """
+    dept = request.GET.get("department", "Overall")
+
+    now = timezone.localtime(timezone.now())
+    start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_of_day = start_of_day.replace(hour=23, minute=59, second=59)
+
+    scans = ScanRecord.objects.filter(
+        machine_no__iexact=machine_no,
+        scanned_at__range=(start_of_day, end_of_day),
+    )
+
+    if dept != "Overall":
+        scans = scans.filter(lot__department__icontains=dept)
+
+    grouped = (
+        scans.annotate(h=TruncHour("scanned_at"))
+        .values("h")
+        .annotate(total_qty=Sum("qty"))
+        .order_by("h")
+    )
+
+    qty_by_hour = {h: 0 for h in range(24)}
+    for row in grouped:
+        h = timezone.localtime(row["h"]).hour
+        qty_by_hour[h] = row["total_qty"] or 0
+
+    labels = [f"{h:02d}:00" for h in range(24)]
+    daily = [qty_by_hour[h] for h in range(24)]
+
+    return JsonResponse({"labels": labels, "daily": daily})
+
+
+@login_required
+def machine_chart_data(request, machine_no):
+    """
+    คืนค่า JSON สรุปข้อมูลเครื่อง + กราฟยอดสแกนรายชั่วโมงของวันนี้
+    ใช้กับการ์ดใน Machine View
+    """
+    today = timezone.localdate()
+
+    scans_qs = ScanRecord.objects.filter(
+        machine_no__iexact=machine_no,
+        scanned_at__date=today,
+    ).order_by("scanned_at")
+
+    qty_by_hour = {h: 0 for h in range(24)}
+    latest_scan = None
+    for s in scans_qs:
+        local_dt = timezone.localtime(s.scanned_at)
+        h = local_dt.hour
+        qty_by_hour[h] += s.qty or 0
+        latest_scan = s
+
+    labels = [f"{h:02d}:00" for h in range(24)]
+    daily = [qty_by_hour[h] for h in range(24)]
+
+    lot = None
+    if latest_scan:
+        lot = latest_scan.lot
+    else:
+        latest_scan_all = (
+            ScanRecord.objects.filter(machine_no__iexact=machine_no)
+            .order_by("scanned_at")
+            .last()
+        )
+        if latest_scan_all:
+            latest_scan = latest_scan_all
+            lot = latest_scan_all.lot
+
+    target = 0
+    produced = 0
+    lot_no = ""
+    part_no = ""
+    customer = ""
+    last_scan_display = ""
+
+    if lot:
+        lot_no = lot.lot_no or ""
+        part_no = lot.part_no or ""
+        customer = lot.customer or ""
+        target = lot.target or lot.production_quantity or 0
+        produced = (
+            ScanRecord.objects.filter(lot=lot).aggregate(s=Sum("qty"))["s"] or 0
+        )
+
+    if latest_scan:
+        last_scan_display = timezone.localtime(
+            latest_scan.scanned_at
+        ).strftime("%d/%m %H:%M")
+
+    if target and produced >= target:
+        status = "Finished"
+    elif produced > 0:
+        status = "Running"
+    else:
+        status = "Ready"
+
+    data = {
+        "machine_no": machine_no,
+        "status": status,
+        "lot_no": lot_no,
+        "part_no": part_no,
+        "customer": customer,
+        "target": int(target),
+        "produced": int(produced),
+        "last_scan_display": last_scan_display,
+        "labels": labels,
+        "daily": daily,
+    }
+    return JsonResponse(data)
+
+@login_required
+def machine_chart_data(request, machine_no):
+    """
+    คืนค่า JSON สรุปข้อมูลเครื่อง + กราฟยอดสแกนรายชั่วโมงของ
+    'วันล่าสุดที่มีการสแกนเครื่องนี้'
+    ใช้กับการ์ดใน Machine View
+    """
+    # หา log ล่าสุดของเครื่องนี้ก่อน
+    latest_scan_all = (
+        ScanRecord.objects
+        .filter(machine_no__iexact=machine_no)
+        .order_by("scanned_at")
+        .last()
+    )
+
+    if not latest_scan_all:
+        # ยังไม่เคยสแกนเลย → คืนค่าเปล่า ๆ
+        return JsonResponse({
+            "machine_no": machine_no,
+            "status": "Ready",
+            "lot_no": "",
+            "part_no": "",
+            "customer": "",
+            "target": 0,
+            "produced": 0,
+            "last_scan_display": "",
+            "labels": [f"{h:02d}:00" for h in range(24)],
+            "daily": [0 for _ in range(24)],
+        })
+
+    # ใช้ "วันที่ของ log ล่าสุด" เป็นวันเป้าหมายของกราฟ
+    focus_date = timezone.localtime(latest_scan_all.scanned_at).date()
+
+    scans_qs = (
+        ScanRecord.objects
+        .filter(
+            machine_no__iexact=machine_no,
+            scanned_at__date=focus_date,
+        )
+        .order_by("scanned_at")
+    )
+
+    # รวมจำนวนสแกนต่อชั่วโมง
+    qty_by_hour = {h: 0 for h in range(24)}
+    latest_scan = None
+    for s in scans_qs:
+        local_dt = timezone.localtime(s.scanned_at)
+        h = local_dt.hour
+        qty_by_hour[h] += s.qty or 0
+        latest_scan = s
+
+    labels = [f"{h:02d}:00" for h in range(24)]
+    daily = [qty_by_hour[h] for h in range(24)]
+
+    # lot ล่าสุด (จาก log ล่าสุดของทั้งเครื่อง)
+    lot = latest_scan_all.lot if latest_scan_all else None
+
+    target = 0
+    produced = 0
+    lot_no = ""
+    part_no = ""
+    customer = ""
+    last_scan_display = ""
+
+    if lot:
+        lot_no = lot.lot_no or ""
+        part_no = lot.part_no or ""
+        customer = lot.customer or ""
+        target = lot.target or lot.production_quantity or 0
+        produced = (
+            ScanRecord.objects.filter(lot=lot).aggregate(s=Sum("qty"))["s"] or 0
+        )
+
+    if latest_scan_all:
+        last_scan_display = timezone.localtime(
+            latest_scan_all.scanned_at
+        ).strftime("%d/%m %H:%M")
+
+    # สถานะเครื่องแบบง่าย ๆ
+    if target and produced >= target:
+        status = "Finished"
+    elif produced > 0:
+        status = "Running"
+    else:
+        status = "Ready"
+
+    data = {
+        "machine_no": machine_no,
+        "status": status,
+        "lot_no": lot_no,
+        "part_no": part_no,
+        "customer": customer,
+        "target": int(target),
+        "produced": int(produced),
+        "last_scan_display": last_scan_display,
+        "labels": labels,
+        "daily": daily,
+    }
+    return JsonResponse(data)

@@ -37,6 +37,8 @@ urlpatterns = [
     path("user-control/", views.user_control, name="user_control"),
     path("api/", views.api, name="api"),
     path("export/productivity/",views.export_productivity_excel,name="export_productivity_excel",),
+    path("dashboard/machine/<str:machine_no>/mini-chart/",views.machine_mini_chart,name="machine_mini_chart",),
+    path("dashboard/machine/<str:machine_no>/chart-data/", views.machine_chart_data, name="machine_chart_data"),
 
     # import Excel
     path("import-excel/", views.import_excel, name="import_excel"),
