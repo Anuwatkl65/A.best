@@ -1,103 +1,100 @@
 {% extends "production/base.html" %}
-{% load static %}
-{% load humanize %}
+{% load static humanize %}
 
-{% block title %}Dashboard: {{ department_label }} · Machine View{% endblock %}
+{% block title %}Machine View · {{ department_label }}{% endblock %}
 
 {% block content %}
+<div class="max-w-6xl mx-auto px-4 py-6">
 
-<div class="max-w-7xl mx-auto px-4 pt-6 pb-10">
+  <!-- Breadcrumb -->
+  <div class="flex items-center gap-2 text-sm mb-4 text-gray-500">
+    <span class="material-symbols-outlined text-base">home</span>
+    <a href="{% url 'home_menu' %}" class="text-purple-700 hover:underline">Home</a>
+    <span class="text-gray-400">/</span>
+    <span class="text-gray-600">Dashboard: {{ department_label }}</span>
+    <span class="text-gray-400">/</span>
+    <span class="text-gray-900 font-semibold">Machine View</span>
+  </div>
 
-  <!-- Breadcrumb + Title -->
-  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+  <!-- Header -->
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
     <div>
-      <nav class="flex items-center text-xs text-gray-500 mb-1">
-        <a href="{% url 'home_menu' %}" class="hover:text-purple-600 flex items-center gap-1 transition-colors">
-          <span class="material-symbols-outlined text-[16px]">home</span> Home
-        </a>
-        <span class="mx-2">/</span>
-        {% if department == 'Overall' %}
-          <a href="{% url 'department_select' %}" class="hover:text-purple-600 transition-colors">
-            Dashboard: {{ department_label }}
-          </a>
-        {% else %}
-          <a href="{% url 'view_select' %}?department={{ department }}" class="hover:text-purple-600 transition-colors">
-            Dashboard: {{ department_label }}
-          </a>
-        {% endif %}
-        <span class="mx-2">/</span>
-        <span class="font-bold text-purple-600">Machine View</span>
-      </nav>
       <h1 class="text-2xl font-extrabold text-gray-900">
         ภาพรวมการทำงานเครื่องจักร ({{ department_label }})
       </h1>
-      <p class="text-xs text-gray-400 mt-1">
-        การ์ดแต่ละใบ = 1 เครื่อง · มีกราฟยอดสแกนรายชั่วโมงของวันนี้ · ข้อมูลรีเฟรชอัตโนมัติ
+      <p class="text-xs text-gray-500">
+        การมัดเลตัว 1 เครื่อง · มีกราฟยอดสแกนรายชั่วโมงของวันนี้ · ข้อมูลอัปเดตอัตโนมัติทุก 30 วินาที
       </p>
     </div>
 
-    <a href="{% url 'view_select' %}?department={{ department }}"
-       class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-all shadow-sm">
-      <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+    <a
+      href="{% url 'view_select' %}?department={{ department }}"
+      class="inline-flex items-center gap-1 px-4 py-2 rounded-full bg-white border border-gray-200 text-sm text-gray-700 hover:bg-gray-50"
+    >
+      <span class="material-symbols-outlined text-base">arrow_back</span>
       กลับไปเลือกมุมมอง
     </a>
   </div>
 
-  <!-- Search + Status summary -->
-  <div class="flex flex-col lg:flex-row gap-4 mb-6">
-    <!-- Search -->
-    <div class="flex-1">
-      <label for="machine-search" class="block text-xs font-semibold text-gray-500 mb-1">
-        ค้นหาเครื่อง (พิมพ์เลขเครื่อง เช่น M525)
+  <!-- Search + summary -->
+  <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+    <!-- search -->
+    <div class="w-full lg:max-w-xl">
+      <label class="block text-xs font-semibold text-gray-500 mb-1">
+        ค้นหาเครื่อง (เพิ่มทีละเครื่อง เช่น M525)
       </label>
       <div class="relative">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-          <span class="material-symbols-outlined text-[20px]">search</span>
+        <span class="material-symbols-outlined text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 text-base">
+          search
         </span>
         <input
           id="machine-search"
           type="text"
+          class="w-full pl-9 pr-3 py-2 rounded-full border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400"
           placeholder="พิมพ์หมายเลขเครื่องหรือคำที่ต้องการค้นหา..."
-          class="w-full h-11 pl-10 pr-3 rounded-xl border border-gray-200 text-sm
-                 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 shadow-sm"
-        >
+        />
       </div>
-      <p class="text-[10px] text-gray-400 mt-1">
-        ระบบจะซ่อนการ์ดที่ไม่ตรงคำค้นหาแบบ Real-time
+      <p class="mt-1 text-[11px] text-gray-400">
+        ระบบจะซ่อนการ์ดที่ไม่ตรงกับคำค้นหาให้อัตโนมัติ
       </p>
     </div>
 
-    <!-- Status Summary -->
-    <div class="flex items-stretch gap-2 flex-shrink-0">
-      <div class="px-4 py-2 rounded-2xl bg-white border border-gray-200 shadow-sm flex flex-col justify-center">
-        <div class="text-[11px] text-gray-500">รวมเครื่อง</div>
-        <div class="text-lg font-extrabold text-gray-900" id="sumAllMachines">{{ machines|length }}</div>
+    <!-- summary badges -->
+    <div class="flex items-center gap-2 justify-start lg:justify-end">
+      <div class="px-4 py-2 rounded-2xl bg-white border border-gray-100 text-xs text-gray-700 shadow-sm">
+        <div class="text-[11px] text-gray-400">รวมเครื่อง</div>
+        <div id="sumAllMachines" class="text-lg font-bold text-gray-900">
+          {{ machines|length }}
+        </div>
       </div>
-
-      <div class="px-4 py-2 rounded-2xl bg-emerald-50 border border-emerald-100 flex flex-col justify-center">
-        <div class="text-[11px] text-emerald-700">Ready</div>
-        <div class="text-lg font-extrabold text-emerald-800" id="sumReadyMachines">0</div>
+      <div class="px-4 py-2 rounded-2xl bg-emerald-50 text-xs text-emerald-700 border border-emerald-100">
+        <div class="text-[11px] text-emerald-500">Ready</div>
+        <div id="sumReadyMachines" class="text-lg font-bold">
+          0
+        </div>
       </div>
-
-      <div class="px-4 py-2 rounded-2xl bg-amber-50 border border-amber-100 flex flex-col justify-center">
-        <div class="text-[11px] text-amber-700">Running</div>
-        <div class="text-lg font-extrabold text-amber-800" id="sumActiveMachines">0</div>
+      <div class="px-4 py-2 rounded-2xl bg-amber-50 text-xs text-amber-700 border border-amber-100">
+        <div class="text-[11px] text-amber-500">Running</div>
+        <div id="sumActiveMachines" class="text-lg font-bold">
+          0
+        </div>
       </div>
-
-      <div class="px-4 py-2 rounded-2xl bg-indigo-50 border border-indigo-100 flex flex-col justify-center">
-        <div class="text-[11px] text-indigo-700">Finished</div>
-        <div class="text-lg font-extrabold text-indigo-800" id="sumDoneMachines">0</div>
+      <div class="px-4 py-2 rounded-2xl bg-indigo-50 text-xs text-indigo-700 border border-indigo-100">
+        <div class="text-[11px] text-indigo-500">Finished</div>
+        <div id="sumDoneMachines" class="text-lg font-bold">
+          0
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Grid การ์ดเครื่อง -->
-  <div id="machine-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+  <div id="machine-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
     {% if machines %}
       {% for m in machines %}
         {% with lot=m.active_lot %}
         <a
-          href="{% url 'dashboard' %}?department={{ department }}&view=list&machine_no={{ m.machine_no }}"
+          href="{% url 'machine_detail' m.machine_no %}?department={{ department }}"
           class="block group"
         >
           <div
@@ -105,7 +102,7 @@
             data-machine-no="{{ m.machine_no }}"
             data-summary-url="{% url 'machine_chart_data' m.machine_no %}?department={{ department }}"
           >
-            <!-- header -->
+            <!-- header ม่วง -->
             <div class="px-4 pt-3 pb-2 bg-gradient-to-r from-purple-500 to-purple-600 flex items-start justify-between">
               <div>
                 <div class="text-sm font-extrabold text-white tracking-wide">
@@ -113,83 +110,70 @@
                 </div>
                 <div class="text-[11px] text-purple-100">
                   {% if lot %}
-                    Lot: <span class="js-lot-no">{{ lot.lot_no }}</span> ·
-                    <span class="js-part-no">{{ lot.part_no|default:"-" }}</span>
+                    Lot: <span class="js-lot-no">{{ lot.lot_no }}</span>
                   {% else %}
                     <span class="js-lot-no">-</span>
                   {% endif %}
                 </div>
               </div>
-
               <span
-                class="js-status-badge inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold
-                       {% if m.status == 'Running' %}
-                         bg-amber-100 text-amber-800
-                       {% elif m.status == 'Finished' %}
-                         bg-indigo-100 text-indigo-800
-                       {% else %}
-                         bg-emerald-100 text-emerald-800
-                       {% endif %}"
+                class="js-status-badge inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800"
               >
                 {{ m.status|default:"Ready" }}
               </span>
             </div>
 
-            <!-- mini chart -->
-            <div class="px-4 pt-3 pb-2">
-              <div class="h-24 w-full bg-gray-50 rounded-xl overflow-hidden">
+            <!-- chart zone -->
+            <div class="px-4 py-3 bg-slate-50/60">
+              <div class="h-20 w-full">
                 <canvas class="machine-mini-chart w-full h-full"></canvas>
               </div>
             </div>
 
-            <!-- summary -->
-            <div class="px-4 pb-3 text-[11px] text-gray-600">
+            <!-- footer numbers -->
+            <div class="px-4 py-3 text-[11px] text-gray-700 border-t border-gray-100 bg-white">
               <div class="flex justify-between mb-1">
                 <div>
-                  <div class="text-[10px] text-gray-400">รวมเป้า</div>
-                  <div class="font-semibold js-target">
+                  <div class="text-[10px] text-gray-400 uppercase tracking-wide">เป้าปัจจุบัน</div>
+                  <div class="js-target font-semibold">
                     {% if lot %}
-                      {{ lot.target|default:lot.production_quantity|intcomma }}
+                      {{ lot.target|default:lot.production_quantity|default:0|intcomma }}
                     {% else %}
                       0
-                    {% endif %} pcs
+                    {% endif %}
+                    pcs
                   </div>
                 </div>
                 <div class="text-right">
-                  <div class="text-[10px] text-gray-400">สแกนแล้ว</div>
-                  <div class="font-semibold js-produced">
-                    {% if lot %}
+                  <div class="text-[10px] text-gray-400 uppercase tracking-wide">ผลิตแล้ว</div>
+                  <div class="js-produced font-semibold">
+                    {% if lot and lot.produced %}
                       {{ lot.produced|intcomma }}
                     {% else %}
                       0
-                    {% endif %} pcs
+                    {% endif %}
+                    pcs
                   </div>
                 </div>
               </div>
 
-              <div class="flex justify-between items-center mt-1">
-                <div class="text-[10px] text-gray-400">
-                  ลูกค้า
-                  <span class="font-semibold text-gray-700 js-customer" title="{{ lot.customer|default:'-' }}">
-                    {% if lot %}{{ lot.customer|default:"-" }}{% else %}-{% endif %}
-                  </span>
+              <div class="flex justify-between items-center mt-1 text-[10px] text-gray-400">
+                <div>
+                  {% if lot %}
+                    PART: <span class="js-part-no">{{ lot.part_no|default:"-" }}</span>
+                  {% else %}
+                    PART: <span class="js-part-no">-</span>
+                  {% endif %}
                 </div>
-                <div class="text-[10px] text-gray-400 text-right">
+                <div class="text-right">
                   Last Scan:
-                  <span class="font-semibold text-gray-700 js-last-scan">
-                    {% if lot.last_scan %}{{ lot.last_scan|date:"d/m H:i" }}{% else %}-{% endif %}
+                  <span class="js-last-scan">
+                    {% if lot.last_scan %}
+                      {{ lot.last_scan|date:"d/m H:i" }}
+                    {% else %}
+                      -
+                    {% endif %}
                   </span>
-                </div>
-              </div>
-
-              <div class="mt-2 pt-2 border-t border-gray-50 flex justify-between items-center">
-                <div class="text-[10px] text-gray-400">
-                  งานทั้งหมดในเครื่องนี้:
-                  <span class="font-semibold text-purple-600">{{ m.lots|length }}</span> lot
-                </div>
-                <div class="flex items-center gap-1 text-[10px] text-purple-600 group-hover:text-purple-700">
-                  <span class="material-symbols-outlined text-[14px]">bar_chart</span>
-                  <span>กดเพื่อดูรายละเอียด</span>
                 </div>
               </div>
             </div>
@@ -198,16 +182,20 @@
         {% endwith %}
       {% endfor %}
     {% else %}
-      <div class="col-span-full text-center py-16 bg-white rounded-2xl border border-gray-100 border-dashed">
-        <span class="material-symbols-outlined text-4xl text-gray-300 mb-2">inbox</span>
-        <p class="text-gray-500 text-sm">ยังไม่มีข้อมูลเครื่องจักรในแผนกนี้</p>
+      <div class="col-span-full">
+        <div class="p-6 bg-white rounded-2xl border border-dashed border-gray-200 text-center text-gray-400 text-sm">
+          ยังไม่มีข้อมูลเครื่องจักรในแผนกนี้
+        </div>
       </div>
     {% endif %}
   </div>
-
 </div>
 
-<!-- โหลด JS สำหรับ Machine View -->
-<script src="{% static 'js/dashboard_machine.js' %}"></script>
-
+<!-- ส่ง context ให้ app.js ใช้ -->
+<script>
+  window.__DASHBOARD_CONTEXT__ = {
+    department: "{{ department }}",
+    view_type: "machine",
+  };
+</script>
 {% endblock %}

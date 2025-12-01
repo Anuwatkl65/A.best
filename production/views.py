@@ -498,33 +498,89 @@ def dashboard(request):
 
 @login_required
 def machine_detail(request, machine_no):
-    dept = request.GET.get("department", "Preform")
-    # 👇 รับค่าจาก query string (เช่น from_view=order เวลามาจาก Order View)
-    from_view = request.GET.get("from_view", "")
+    """
+    หน้าแสดง log การสแกนของ 'วันนี้' สำหรับเครื่องหนึ่งเครื่อง
+    - filter ตาม machine_no
+    - filter ตาม department (ถ้าไม่ใช่ Overall)
+    - เรียงเวลาเก่า -> ใหม่
+    """
+    dept = request.GET.get("department", "Overall")
+    department_label = LABELS.get(dept, dept)
 
-    qs = Lot.objects.filter(
-        department__icontains="พรีฟอร์ม" if dept == "Preform" else dept,
-        machine_no__iexact=machine_no,
+    # วันนี้ (ตาม timezone ปัจจุบัน)
+    today = timezone.localdate()
+    start_dt = timezone.make_aware(
+        datetime.combine(today, datetime.min.time())
+    )
+    end_dt = timezone.make_aware(
+        datetime.combine(today, datetime.max.time())
     )
 
-    lots, summary = _build_lot_list(qs)
-    type_counts = _build_type_counts(qs)
+    # ดึง ScanRecord ของเครื่องนี้ในวันนี้
+    scans_qs = ScanRecord.objects.filter(
+        machine_no__iexact=machine_no,
+        scanned_at__range=(start_dt, end_dt),
+    ).select_related("lot").order_by("scanned_at")
 
-    ctx = {
+    # filter ตามแผนก
+    if dept == "Preform":
+        scans_qs = scans_qs.filter(lot__department__icontains="พรีฟอร์ม")
+    elif dept != "Overall":
+        scans_qs = scans_qs.filter(lot__department__icontains=department_label)
+
+    # สรุป
+    total_today = scans_qs.aggregate(s=Sum("qty"))["s"] or 0
+    first_scan = scans_qs.first()
+    latest_scan = scans_qs.last()
+
+    active_lot = latest_scan.lot if latest_scan else None
+    target = 0
+    produced = 0
+    status = "Ready"
+
+    if active_lot:
+        target = active_lot.target or active_lot.production_quantity or 0
+        produced = (
+            ScanRecord.objects.filter(lot=active_lot).aggregate(s=Sum("qty"))["s"]
+            or 0
+        )
+        if target and produced >= target:
+            status = "Finished"
+        elif produced > 0:
+            status = "Running"
+
+    # เตรียม row สำหรับตาราง
+    rows = []
+    for s in scans_qs:
+        lot = s.lot
+        local_dt = timezone.localtime(s.scanned_at)
+        rows.append(
+            {
+                "time": local_dt.strftime("%H:%M:%S"),
+                "lot_no": lot.lot_no if lot else "",
+                "part_no": lot.part_no if lot else "",
+                "customer": lot.customer if lot else "",
+                "qty": s.qty or 0,
+            }
+        )
+
+    context = {
         "department": dept,
-        "department_label": LABELS.get(dept, dept),
-        "view_type": "list",
+        "department_label": department_label,
         "machine_no": machine_no,
-        "lots": lots,
-        "summary": summary,
-        "type_counts": type_counts,
-        "active_type": "all",
-        "active_status": "all",
-        # 👇 ส่งไปให้ template ใช้เงื่อนไขปุ่มย้อนกลับ + สร้างลิงก์ไป lot_detail
-        "from_view": from_view,
+        "today": today,
+        "rows": rows,
+        # summary card
+        "status": status,
+        "active_lot": active_lot,
+        "target": target,
+        "produced": produced,
+        "total_today": total_today,
+        "first_scan": first_scan.scanned_at if first_scan else None,
+        "last_scan": latest_scan.scanned_at if latest_scan else None,
     }
+    return render(request, "production/machine_detail.html", context)
 
-    return render(request, "production/dashboard_list.html", ctx)
 
 
 # ---------- Lot detail + Chart ----------
@@ -2063,3 +2119,39 @@ def machine_chart_data(request, machine_no):
         "daily": daily,
     }
     return JsonResponse(data)
+
+@login_required
+def machine_scan_logs_today(request, machine_no):
+    today = timezone.localdate()
+
+    scans = (
+        ScanRecord.objects
+        .filter(
+            machine_no__iexact=machine_no,
+            scanned_at__date=today
+        )
+        .select_related("lot")
+        .order_by("-scanned_at")
+    )
+
+    data = []
+    total_qty = 0
+
+    for s in scans:
+        lot = s.lot
+        data.append({
+            "time": timezone.localtime(s.scanned_at).strftime("%H:%M"),
+            "lot_no": lot.lot_no if lot else "-",
+            "part_no": lot.part_no if lot else "-",
+            "customer": lot.customer if lot else "-",
+            "qty": s.qty or 0,
+        })
+        total_qty += s.qty or 0
+
+    return JsonResponse({"logs": data, "total": total_qty})
+
+def _is_admin(user):
+    if not user.is_authenticated:
+        return False
+    profile = getattr(user, "userprofile", None)
+    return (profile and profile.role == "admin") or user.is_superuser

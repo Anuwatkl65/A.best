@@ -1,86 +1,188 @@
-# views.py
-from django.db.models import Sum, Max
-from django.db.models.functions import TruncHour
+    {% extends "production/base.html" %}
+    {% load humanize %}
 
-@login_required
-def machine_detail(request, machine_no):
-    dept = request.GET.get("department", "Preform")
-    department_label = LABELS.get(dept, dept)
+    {% block title %}Machine {{ machine.machine_no }} · รายละเอียดเครื่อง{% endblock %}
 
-    # ----- 1) ดึง Lot ทั้งหมดของเครื่องนี้ -----
-    lot_qs = Lot.objects.filter(machine_no__iexact=machine_no)
+    {% block content %}
 
-    # ใช้ lot ที่มีการสแกนล่าสุดเป็น "lot ปัจจุบันของเครื่อง"
-    lot_qs = lot_qs.annotate(last_scan_time=Max("scans__scanned_at"))
-    current_lot = lot_qs.order_by("-last_scan_time").first()
+    <div class="max-w-6xl mx-auto px-4 py-6">
 
-    # ถ้าเครื่องยังไม่มี lot เลย
-    if not current_lot:
-        ctx = {
-            "department": dept,
-            "department_label": department_label,
-            "machine_no": machine_no,
-            "current_lot": None,
-            "status": "Ready",
-            "produced": 0,
-            "target": 0,
-            "progress": 0,
-            "first_scan": None,
-            "last_scan": None,
-            "chart_labels": "[]",
-            "chart_values": "[]",
+    <!-- Breadcrumb -->
+    <div class="flex items-center justify-between mb-4">
+
+        <!-- LEFT: Breadcrumb -->
+        <div class="flex items-center gap-2 text-sm text-gray-500">
+        <a href="{% url 'home_menu' %}" class="hover:text-purple-700">Home</a>
+        <span>/</span>
+        <a href="{% url 'dashboard' %}?department={{ department }}&view=machine"
+            class="hover:text-purple-700">Machine View</a>
+        <span>/</span>
+        <span class="text-gray-900 font-semibold">{{ machine.machine_no }}</span>
+        </div>
+
+        <!-- RIGHT: ปุ่มย้อนกลับ -->
+        <a href="{% url 'dashboard' %}?department={{ department }}&view=machine"
+        class="inline-flex items-center gap-2 px-4 py-2 bg-white border rounded-xl shadow hover:bg-gray-50 transition">
+        <span class="material-symbols-outlined text-gray-600">arrow_back</span>
+        <span class="text-sm font-medium text-gray-700">กลับไปหน้า Machine View</span>
+        </a>
+
+    </div>
+
+    <h1 class="text-2xl font-extrabold mb-2">
+        เครื่อง {{ machine.machine_no }}
+    </h1>
+
+    <p class="text-gray-500 mb-6">
+        ภาพรวมการทำงานประจำวันที่ {{ today|date:"d/m/Y" }}
+    </p>
+
+    <!-- การ์ดบน -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+
+        <!-- ข้อมูล LOT -->
+        <div class="p-5 bg-white rounded-2xl shadow border border-gray-100">
+        <h3 class="text-lg font-bold mb-4">LOT ปัจจุบัน</h3>
+
+        {% if active_lot %}
+            <div class="text-sm text-gray-700 space-y-1">
+            <div><b>Lot No:</b> {{ active_lot.lot_no }}</div>
+            <div><b>Part No:</b> {{ active_lot.part_no }}</div>
+            <div><b>Customer:</b> {{ active_lot.customer }}</div>
+            <div><b>Target:</b> {{ active_lot.target|intcomma }} pcs</div>
+            <div><b>Scanned:</b> {{ produced|intcomma }} pcs</div>
+            <div><b>Last Scan:</b> {{ last_scan_display }}</div>
+            </div>
+        {% else %}
+            <p class="text-gray-400 text-sm">ยังไม่มี LOT ทำงานในวันนี้</p>
+        {% endif %}
+        </div>
+
+        <!-- Chart -->
+        <div class="p-5 bg-white rounded-2xl shadow border border-gray-100">
+        <h3 class="text-lg font-bold mb-4">กราฟรายชั่วโมง (วันนี้)</h3>
+        <div class="w-full h-48">
+            <canvas id="machine-detail-chart"></canvas>
+        </div>
+        </div>
+
+    </div>
+
+    <!-- ตาราง Scan -->
+    <div class="bg-white rounded-2xl shadow border border-gray-100 p-5">
+        <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-bold">รายการสแกนวันนี้</h3>
+        <span class="text-xs text-gray-400">อัปเดตอัตโนมัติทุก 30 วินาที</span>
+        </div>
+
+        <table class="w-full text-sm">
+        <thead>
+            <tr class="text-left text-gray-500 text-xs border-b">
+            <th class="p-2">เวลา</th>
+            <th class="p-2">LOT NO.</th>
+            <th class="p-2">PART NO.</th>
+            <th class="p-2">ลูกค้า</th>
+            <th class="p-2 text-right">จำนวน (PCS)</th>
+            </tr>
+        </thead>
+
+        <tbody id="scan-log-table">
+            <tr>
+            <td colspan="5" class="text-center text-gray-400 p-4">
+                กำลังโหลดข้อมูล...
+            </td>
+            </tr>
+        </tbody>
+
+        <tfoot>
+            <tr class="border-t font-semibold text-gray-700">
+            <td colspan="4" class="p-2 text-right">รวมทั้งหมด</td>
+            <td id="scan-total" class="p-2 text-right">0</td>
+            </tr>
+        </tfoot>
+        </table>
+    </div>
+
+    </div>
+
+    <!-- ส่งค่าลง JS -->
+    <script>
+    const machineNo = "{{ machine.machine_no }}";
+    const dept = "{{ department }}";
+    </script>
+
+    <!-- โหลดกราฟ -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+    const ctx = document.getElementById("machine-detail-chart");
+    if (!ctx) return;
+
+    fetch(`/api/machine/${machineNo}/chart/?department=${dept}`)
+        .then(res => res.json())
+        .then(data => {
+        new Chart(ctx, {
+            type: "bar",
+            data: {
+            labels: data.labels,
+            datasets: [{
+                data: data.daily,
+                backgroundColor: "rgba(139, 92, 246, 0.85)",
+                borderWidth: 0,
+            }],
+            },
+            options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { x: { display: true }, y: { display: true } },
+            },
+        });
+        });
+    });
+    </script>
+
+    <!-- โหลด scan logs -->
+    <script>
+    function loadScanLogs() {
+    const tableBody = document.getElementById("scan-log-table");
+    const totalEl = document.getElementById("scan-total");
+
+    fetch(`/api/machine/${machineNo}/scan_logs_today/`)
+        .then(res => res.json())
+        .then(data => {
+
+        const logs = data.logs || [];
+        let html = "";
+
+        if (!logs.length) {
+            html = `
+            <tr>
+                <td colspan="5" class="text-center text-gray-400 p-4">
+                ไม่พบการสแกนในช่วงเวลานี้
+                </td>
+            </tr>
+            `;
+        } else {
+            logs.forEach(r => {
+            html += `
+                <tr class="border-b">
+                <td class="p-2">${r.time}</td>
+                <td class="p-2">${r.lot_no}</td>
+                <td class="p-2">${r.part_no}</td>
+                <td class="p-2">${r.customer}</td>
+                <td class="p-2 text-right">${r.qty.toLocaleString()}</td>
+                </tr>
+            `;
+            });
         }
-        return render(request, "production/machine_detail.html", ctx)
 
-    # ----- 2) คำนวณข้อมูลของ Lot ปัจจุบัน -----
-    produced = current_lot.scans.aggregate(s=Sum("qty"))["s"] or 0
-    target = current_lot.target or current_lot.production_quantity or 0
-
-    if target > 0:
-        progress = min(100, int(produced * 100 / target))
-    else:
-        progress = 0
-
-    first_scan = current_lot.scans.order_by("scanned_at").first()
-    last_scan = current_lot.scans.order_by("-scanned_at").first()
-
-    # สถานะง่าย ๆ จาก progress (จะเปลี่ยน logic ภายหลังได้)
-    if produced == 0:
-        status = "Ready"
-    elif progress >= 100:
-        status = "Finished"
-    else:
-        status = "Running"
-
-    # ----- 3) เตรียมข้อมูลกราฟรายชั่วโมง 24 ชม. ล่าสุด -----
-    hourly_qs = (
-        current_lot.scans
-        .annotate(h=TruncHour("scanned_at"))
-        .values("h")
-        .annotate(total_qty=Sum("qty"))
-        .order_by("h")
-    )
-
-    chart_labels = []
-    chart_values = []
-    for row in hourly_qs:
-        h = row["h"]
-        qty = row["total_qty"] or 0
-        chart_labels.append(h.strftime("%H:%M"))
-        chart_values.append(qty)
-
-    ctx = {
-        "department": dept,
-        "department_label": department_label,
-        "machine_no": machine_no,
-        "current_lot": current_lot,
-        "status": status,
-        "produced": produced,
-        "target": target,
-        "progress": progress,
-        "first_scan": first_scan.scanned_at if first_scan else None,
-        "last_scan": last_scan.scanned_at if last_scan else None,
-        "chart_labels": json.dumps(chart_labels),
-        "chart_values": json.dumps(chart_values),
+        tableBody.innerHTML = html;
+        totalEl.textContent = data.total.toLocaleString();
+        });
     }
-    return render(request, "production/machine_detail.html", ctx)
+
+    document.addEventListener("DOMContentLoaded", loadScanLogs);
+    setInterval(loadScanLogs, 30000);
+    </script>
+
+    {% endblock %}

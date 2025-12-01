@@ -273,6 +273,9 @@ document.addEventListener("DOMContentLoaded", function () {
   // --------------------
   // Search: filter การ์ดตามหมายเลขเครื่อง / ข้อความ
   // --------------------
+  // --------------------
+  // Search: filter การ์ดตาม "หมายเลขเครื่อง" เท่านั้น
+  // --------------------
   const searchInput = document.getElementById("machine-search");
   if (searchInput) {
     searchInput.addEventListener("input", function () {
@@ -281,10 +284,9 @@ document.addEventListener("DOMContentLoaded", function () {
       cards.forEach((card) => {
         const wrapper = card.closest("a") || card; // เผื่อมี <a> ครอบ
         const machineNo = (card.dataset.machineNo || "").toLowerCase();
-        const textAll = card.innerText.toLowerCase();
 
-        const match =
-          !kw || machineNo.includes(kw) || textAll.includes(kw);
+        // ค้นหาเฉพาะ machineNo ไม่สน text อื่นบนการ์ดแล้ว
+        const match = !kw || machineNo.includes(kw);
 
         wrapper.style.display = match ? "" : "none";
       });
@@ -306,4 +308,50 @@ function openMachineDetailConfirm(machineNo, department) {
     `/dashboard/?department=${encodeURIComponent(
       dept
     )}&view=list&machine_no=${encodeURIComponent(machineNo)}`;
+}
+// ========================
+// Machine Detail – Scan Logs Today
+// ========================
+async function loadScanLogsToday(machineNo) {
+    const res = await fetch(`/api/machine/${machineNo}/scan_logs_today/`);
+    const data = await res.json();
+
+    const tbody = document.getElementById("scan-log-table");
+    const totalBox = document.getElementById("scan-total");
+
+    tbody.innerHTML = "";
+
+    if (!data.logs.length) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center text-gray-400 p-4">
+                    ไม่พบการสแกนในช่วงเวลานี้
+                </td>
+            </tr>
+        `;
+        totalBox.textContent = "0";
+        return;
+    }
+
+    data.logs.forEach(row => {
+        tbody.innerHTML += `
+            <tr class="border-b hover:bg-gray-50">
+                <td class="p-2">${row.time}</td>
+                <td class="p-2">${row.lot_no}</td>
+                <td class="p-2">${row.part_no}</td>
+                <td class="p-2">${row.customer}</td>
+                <td class="p-2 text-right">${row.qty}</td>
+            </tr>
+        `;
+    });
+
+    totalBox.textContent = data.total.toLocaleString();
+}
+
+// เรียกครั้งแรก
+if (typeof machineNo !== "undefined") {
+    loadScanLogsToday(machineNo);
+
+    // อัปเดตทุก 10 วินาที
+    setInterval(() => loadScanLogsToday(machineNo), 10000);
 }
