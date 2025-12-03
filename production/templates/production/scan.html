@@ -10,7 +10,7 @@
       <p class="text-sm text-gray-500">ส่องกล้องที่ QR/Barcode หรือเลือกไฟล์รูปเพื่อบันทึกข้อมูล</p>
     </div>
     <a href="{% url 'home_menu' %}"
-       class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-600 hover:bg-purple-50 hover:text-purple-700 transition-all shadow-sm">
+      class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-600 hover:bg-purple-50 hover:text-purple-700 transition-all shadow-sm">
       <span class="material-symbols-outlined text-[20px]">arrow_back</span>
       กลับหน้าหลัก
     </a>
@@ -34,7 +34,7 @@
 
         <!-- overlay ข้อความ -->
         <div id="camera-placeholder"
-             class="absolute inset-0 flex flex-col items-center justify-center text-gray-300 text-sm">
+            class="absolute inset-0 flex flex-col items-center justify-center text-gray-300 text-sm">
           <span class="material-symbols-outlined text-6xl mb-2 opacity-50">
             qr_code_scanner
           </span>
@@ -73,9 +73,9 @@
             <label class="block text-xs font-medium text-gray-500 mb-1">LOT NO.</label>
             <div class="relative">
               <input type="text" id="lot-input"
-                     placeholder="สแกนหรือพิมพ์ Lot No."
-                     class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-xl text-lg font-bold text-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
-                     autofocus>
+                    placeholder="สแกนหรือพิมพ์ Lot No."
+                    class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-xl text-lg font-bold text-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
+                    autofocus>
               <button type="button" id="lot-clear-btn"
                       class="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center hover:bg-purple-100 hover:text-purple-700">
                 <span class="material-symbols-outlined text-[18px]">close</span>
@@ -87,12 +87,12 @@
             <div>
               <label class="block text-xs font-medium text-gray-500 mb-1">จำนวน (Qty)</label>
               <input type="number" id="qty-input" value="1" min="1"
-                     class="w-full px-4 py-2 border border-gray-300 rounded-lg text-center font-semibold focus:ring-2 focus:ring-purple-500 outline-none">
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg text-center font-semibold focus:ring-2 focus:ring-purple-500 outline-none">
             </div>
             <div>
               <label class="block text-xs font-medium text-gray-500 mb-1">เครื่อง (Machine)</label>
               <input type="text" id="machine-input" value="MC-01"
-                     class="w-full px-4 py-2 border border-gray-300 rounded-lg text-center font-semibold focus:ring-2 focus:ring-purple-500 outline-none">
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg text-center font-semibold focus:ring-2 focus:ring-purple-500 outline-none">
             </div>
           </div>
 

@@ -1,162 +1,161 @@
 {% load static %}
 <!doctype html>
 <html lang="th">
+
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>{% block title %}Production Tracker{% endblock %}</title>
-  
-  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&family=Material+Symbols+Outlined" rel="stylesheet" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}Production Tracker{% endblock %}</title>
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Kanit', 'system-ui', 'sans-serif'],
-          },
-          colors: {
-            abest: { 500:'#7c3aed', 600:'#6d28d9', 700:'#5b21b6' }
-          }
+    <!-- Google Font + Material Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&family=Material+Symbols+Outlined"
+        rel="stylesheet" />
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Kanit', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        abest: { 500: '#7c3aed', 600: '#6d28d9', 700: '#5b21b6' }
+                    }
+                }
+            }
         }
-      }
-    }
-    
-  </script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="{% static 'js/app.js' %}"></script>
+    </script>
 
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <style>
-    body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; }
-    /* Custom Scrollbar */
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: #f1f1f1; }
-    ::-webkit-scrollbar-thumb { background: #c4b5fd; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #a78bfa; }
-  </style>
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+            background-color: #f8fafc;
+        }
 
-  {% block extra_head %}{% endblock %}
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c4b5fd;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a78bfa;
+        }
+    </style>
+
+    {% block extra_head %}{% endblock %}
 </head>
+
 <body class="bg-slate-50 text-gray-800 flex flex-col min-h-screen">
 
-  <header class="bg-gradient-to-r from-purple-700 to-indigo-800 text-white shadow-lg sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 py-3">
-      <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-        
-        <div class="flex items-center gap-3 w-full md:w-auto justify-center md:justify-start">
-           <div class="bg-white/10 p-2 rounded-lg backdrop-blur-sm border border-white/10 shadow-inner">
-             <span class="material-symbols-outlined text-2xl">precision_manufacturing</span>
-           </div>
-           <div>
-             <h1 class="text-xl font-bold leading-none tracking-wide">Production Tracker</h1>
-             <p class="text-[11px] text-purple-200 opacity-90 font-light mt-0.5">ระบบติดตามการผลิตเรียลไทม์</p>
-           </div>
-        </div>
+    <!-- HEADER -->
+    <header class="bg-gradient-to-r from-purple-700 to-indigo-800 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
 
-        <div class="flex items-center bg-black/20 rounded-full p-1 pr-2 backdrop-blur-md border border-white/10">
-          {% if user.is_authenticated %}
-            <div class="flex items-center gap-2 px-3 py-1 border-r border-white/20 mr-2">
-              <span class="material-symbols-outlined text-[20px] text-purple-200">account_circle</span>
-              <div class="flex flex-col">
-                <span class="text-xs font-bold leading-none">{{ user.username }}</span>
-                <span class="text-[10px] text-purple-200 leading-none mt-0.5">Staff</span>
-              </div>
+                <div class="flex items-center gap-3">
+                    <div class="bg-white/10 p-2 rounded-lg border border-white/10 shadow-inner">
+                        <span class="material-symbols-outlined text-2xl">precision_manufacturing</span>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold tracking-wide">Production Tracker</h1>
+                        <p class="text-[11px] text-purple-200 opacity-90">ระบบติดตามการผลิตเรียลไทม์</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center bg-black/20 rounded-full p-1 pr-2 border border-white/10">
+                    {% if user.is_authenticated %}
+                    <div class="flex items-center gap-2 px-3 py-1 border-r border-white/20 mr-2">
+                        <span class="material-symbols-outlined text-[20px] text-purple-200">account_circle</span>
+                        <div>
+                            <span class="text-xs font-bold">{{ user.username }}</span>
+                            <span class="text-[10px] text-purple-200">Staff</span>
+                        </div>
+                    </div>
+
+                    <form action="{% url 'logout' %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit"
+                            class="flex items-center gap-1 px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-xs">
+                            <span>ออก</span>
+                            <span class="material-symbols-outlined text-[14px]">logout</span>
+                        </button>
+                    </form>
+
+                    {% else %}
+                    <a href="{% url 'login_page' %}"
+                        class="px-4 py-1 text-sm font-medium hover:text-purple-200">เข้าสู่ระบบ</a>
+                    {% endif %}
+                </div>
+
+                <div class="hidden md:flex items-center gap-3">
+                    <div>
+                        <h2 class="text-sm font-bold uppercase tracking-wider">A.Best Inter Products</h2>
+                        <p class="text-[10px] text-purple-200 tracking-widest">CO., LTD.</p>
+                    </div>
+                    <img src="https://www.abest.co.th/wp-content/uploads/2019/10/cropped-abest-favicon.png"
+                        class="w-10 h-10 rounded-lg bg-white p-0.5 shadow-md" />
+                </div>
+
             </div>
-            
-            <form action="{% url 'logout' %}" method="post" class="inline-flex">
-              {% csrf_token %}
-              <button type="submit" class="group flex items-center gap-1 px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 transition-all text-xs font-medium text-white">
-                <span>ออก</span>
-                <span class="material-symbols-outlined text-[14px] group-hover:translate-x-0.5 transition-transform">logout</span>
-              </button>
-            </form>
-          {% else %}
-            <a href="{% url 'login_page' %}" class="px-4 py-1 text-sm font-medium hover:text-purple-200 transition-colors">เข้าสู่ระบบ</a>
-          {% endif %}
         </div>
+    </header>
 
-        <div class="hidden md:flex items-center gap-3 text-right w-auto justify-end">
-           <div>
-              <h2 class="text-sm font-bold uppercase tracking-wider text-white">A.Best Inter Products</h2>
-              <p class="text-[10px] text-purple-200 tracking-widest">CO., LTD.</p>
-           </div>
-           <img src="https://www.abest.co.th/wp-content/uploads/2019/10/cropped-abest-favicon.png"
-                class="w-10 h-10 rounded-lg bg-white p-0.5 shadow-md"
-                alt="Logo">
-        </div>
+    <!-- CONTENT -->
+    <main class="flex-grow w-full max-w-7xl mx-auto p-4 md:p-6">
+        {% block content %}{% endblock %}
+    </main>
 
-      </div>
-    </div>
-  </header>
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-gray-200 mt-auto py-4 text-center text-xs text-gray-400">
+        &copy; {% now "Y" %} A.Best Inter Products Co., Ltd. All rights reserved.
+    </footer>
 
-  <main class="flex-grow w-full max-w-7xl mx-auto p-4 md:p-6">
-    {% block content %}{% endblock %}
-  </main>
+    <!-- ระบบจำหน้าเดิม เพื่อให้ goBack() ใช้ได้ -->
+    <script>
+        (function () {
+            try {
+                const last = sessionStorage.getItem("current_page");
+                if (last) sessionStorage.setItem("prev_page", last);
+                sessionStorage.setItem("current_page", window.location.href);
+            } catch (e) { }
+        })();
 
-  <footer class="bg-white border-t border-gray-200 mt-auto py-4">
-    <div class="max-w-7xl mx-auto px-4 text-center text-xs text-gray-400">
-      &copy; {% now "Y" %} A.Best Inter Products Co., Ltd. All rights reserved.
-    </div>
-  </footer>
-
-  <script>window.SCRIPT_URL="/api/";</script>
-
-  <!-- ✅ ระบบจำหน้าเดิม + ฟังก์ชัน goBack() ใช้ได้ทุกหน้า -->
-  <script>
-    (function () {
-      try {
-        // current_page ก่อนหน้า (จากรอบที่แล้ว)
-        const last = sessionStorage.getItem("current_page");
-        if (last) {
-          // อัปเดต prev_page ให้เป็นหน้าเมื่อกี้
-          sessionStorage.setItem("prev_page", last);
+        function goBack() {
+            try {
+                const prev = sessionStorage.getItem("prev_page");
+                if (prev) return window.location.href = prev;
+            } catch (e) { }
+            window.history.back();
         }
-        // เซ็ต current_page เป็นหน้า ณ ตอนนี้
-        sessionStorage.setItem("current_page", window.location.href);
-      } catch (e) {
-        // ถ้า browser บล็อค sessionStorage ก็ไม่เป็นไร
-        console.warn("sessionStorage not available:", e);
-      }
-    })();
-    
-      // ปุ่มเคลียร์ช่องค้นหา / ช่อง input ทั่วไป
-  document.addEventListener('click', function (e) {
-    const btn = e.target.closest('button[data-clear-target]');
-    if (!btn) return;
+    </script>
 
-    const targetId = btn.getAttribute('data-clear-target');
-    const input = document.getElementById(targetId);
+    <!-- GLOBAL CONTEXT -->
+    <script>
+        window.__DASHBOARD_CONTEXT__ = {
+            department: "{{ department|default:'' }}",
+            view_type: "{{ view_type|default:'' }}",
+        };
+    </script>
 
-    if (input) {
-      input.value = '';  // เคลียร์ค่าอย่างเดียว
-    }
-  });
+    <!-- SCRIPT หลัก -->
+    <script src="{% static 'js/app.js' %}"></script>
 
-    function goBack() {
-      try {
-        const prev = sessionStorage.getItem("prev_page");
-        if (prev) {
-          window.location.href = prev;
-          return;
-        }
-      } catch (e) {
-        console.warn("cannot read prev_page:", e);
-      }
-      // fallback ถ้าไม่มี prev_page
-      window.history.back();
-    }
-  </script>
+    <!-- SCRIPT เฉพาะหน้า -->
+    {% block page_js %}{% endblock %}
 
-  {% block extra_js %}{% endblock %}
-  
-  <script>
-    // Global Context สำหรับ JS
-    window.__DASHBOARD_CONTEXT__ = {
-      department: "{{ department|default:'' }}",
-      view_type: "{{ view_type|default:'' }}",
-    };
-  </script>
 </body>
 </html>

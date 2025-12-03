@@ -22,6 +22,7 @@ urlpatterns = [
     path("lot/<str:lot_no>/chart-data/", views.lot_chart_data, name="lot_chart_data"),
     path("productivity/", views.productivity_form, name="productivity_form"),
     path("productivity/report/", views.productivity_view, name="productivity_view"),
+    path("api/machine/<str:machine_no>/chart/",views.machine_chart_data,name="machine_chart_api",),
 
     # Lot detail
     path("lot/<str:lot_no>/", views.lot_detail, name="lot_detail"),

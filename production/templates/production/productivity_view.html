@@ -108,7 +108,7 @@
         </span>
       </div>
 
-      {% if chart_labels %}
+      {% if machine_rows %}
         <div class="w-full h-72">
           <canvas id="prodChart"></canvas>
         </div>
@@ -117,6 +117,7 @@
           ยังไม่พบข้อมูลการผลิตในช่วงวันที่ที่เลือก
         </p>
       {% endif %}
+
     </div>
   </div>
 
@@ -270,10 +271,7 @@
 </div>
 {% endblock %}
 
-{% block extra_js %}
-{{ block.super }}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+{% block page_js %}
 <script>
 (function () {
   const labels = {{ chart_labels|default:"[]"|safe }};

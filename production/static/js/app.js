@@ -82,31 +82,23 @@ function applyDepartmentFilter(rows) {
   );
 }
 
-// ========================
+// ================================
 // Machine View: mini charts + auto refresh + search
-// ========================
+// ================================
 document.addEventListener("DOMContentLoaded", function () {
-  // ต้องมี Chart.js โหลดมาก่อน
-  if (typeof Chart === "undefined") {
-    return;
-  }
+  // ใช้เฉพาะหน้า Machine View ที่มี Chart.js เท่านั้น
+  if (typeof Chart === "undefined") return;
 
-  // การ์ดเครื่องในหน้า Machine View
   const cards = document.querySelectorAll(".machine-card");
-  if (!cards.length) return; // ไม่ใช่หน้า Machine View
+  if (!cards.length) return; // ถ้าไม่มีการ์ด แสดงว่าไม่ใช่หน้า machine view
 
-  // summary กล่องเล็ก ๆ ด้านขวา
-  const elSumAll = document.getElementById("sumAllMachines");
-  const elSumReady = document.getElementById("sumReadyMachines");
+  const elSumReady  = document.getElementById("sumReadyMachines");
   const elSumActive = document.getElementById("sumActiveMachines");
-  const elSumDone = document.getElementById("sumDoneMachines");
+  const elSumDone   = document.getElementById("sumDoneMachines");
 
-  if (elSumAll) elSumAll.textContent = cards.length.toString();
+  const chartMap = new Map(); // เก็บ instance ของแต่ละ mini chart
 
-  // เก็บ chart instance ต่อเครื่อง
-  const chartMap = new Map();
-
-  // map สถานะ -> class ตราบนการ์ด
+  // แปลง status -> class สีของ badge
   function statusClass(status) {
     const s = (status || "").toLowerCase();
     if (s === "running" || s === "active") {
@@ -115,10 +107,10 @@ document.addEventListener("DOMContentLoaded", function () {
     if (s === "finished" || s === "done") {
       return "bg-indigo-100 text-indigo-800";
     }
-    return "bg-emerald-100 text-emerald-800"; // ready
+    return "bg-emerald-100 text-emerald-800"; // ready / อื่น ๆ
   }
 
-  // สร้างหรืออัปเดต chart ของการ์ดหนึ่งใบ
+  // สร้าง/อัปเดต mini chart ของการ์ด
   function updateCardChart(card, labels, daily) {
     const canvas = card.querySelector("canvas.machine-mini-chart");
     if (!canvas) return;
@@ -139,7 +131,7 @@ document.addEventListener("DOMContentLoaded", function () {
           datasets: [
             {
               data: daily,
-              backgroundColor: "rgba(129, 140, 248, 0.85)", // ม่วง
+              backgroundColor: "rgba(129, 140, 248, 0.85)",
               borderWidth: 0,
             },
           ],
@@ -152,8 +144,8 @@ document.addEventListener("DOMContentLoaded", function () {
             tooltip: {
               enabled: true,
               callbacks: {
-                label: function (c) {
-                  const raw = c.raw;
+                label: function (ctx) {
+                  const raw = ctx.raw;
                   const formatted =
                     raw && raw.toLocaleString ? raw.toLocaleString() : raw;
                   return formatted + " pcs";
@@ -172,14 +164,16 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // นับ Ready / Running / Finished จาก badge บนการ์ด
+  // นับ Ready / Running / Finished จาก badge
   function updateStatusSummary() {
     let ready = 0;
     let active = 0;
     let done = 0;
 
     cards.forEach((card) => {
-      const badge = card.querySelector(".js-status-badge");
+      const badge =
+        card.querySelector(".js-status-badge") ||
+        card.querySelector(".status-badge");
       const text = (badge?.textContent || "").trim().toLowerCase();
 
       if (!text || text === "ready") {
@@ -191,14 +185,14 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
 
-    if (elSumReady) elSumReady.textContent = ready.toString();
+    if (elSumReady)  elSumReady.textContent  = ready.toString();
     if (elSumActive) elSumActive.textContent = active.toString();
-    if (elSumDone) elSumDone.textContent = done.toString();
+    if (elSumDone)   elSumDone.textContent   = done.toString();
   }
 
-  // ดึงข้อมูล JSON ของการ์ดและอัปเดต DOM + กราฟ
+  // ดึง JSON ของการ์ดแต่ละใบ
   async function refreshCard(card) {
-    const url = card.dataset.summaryUrl;
+    const url = card.dataset.miniChartUrl || card.dataset.summaryUrl;
     if (!url) return;
 
     try {
@@ -207,13 +201,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
       const data = await res.json();
 
-      const lotNoEl = card.querySelector(".js-lot-no");
-      const partNoEl = card.querySelector(".js-part-no");
-      const custEl = card.querySelector(".js-customer");
-      const targetEl = card.querySelector(".js-target");
-      const prodEl = card.querySelector(".js-produced");
+      const lotNoEl    = card.querySelector(".js-lot-no");
+      const partNoEl   = card.querySelector(".js-part-no");
+      const custEl     = card.querySelector(".js-customer");
+      const targetEl   = card.querySelector(".js-target");
+      const prodEl     = card.querySelector(".js-produced");
       const lastScanEl = card.querySelector(".js-last-scan");
-      const badgeEl = card.querySelector(".js-status-badge");
+      const badgeEl =
+        card.querySelector(".js-status-badge") ||
+        card.querySelector(".status-badge");
 
       if (lotNoEl && data.lot_no !== undefined) {
         lotNoEl.textContent = data.lot_no || "-";
@@ -242,13 +238,19 @@ document.addEventListener("DOMContentLoaded", function () {
       }
       if (badgeEl && data.status !== undefined) {
         badgeEl.textContent = data.status || "Ready";
+        // เคลียร์ class สีเก่า แล้วใส่สีใหม่
         badgeEl.className =
-          "js-status-badge inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold " +
-          statusClass(data.status);
+          (badgeEl.className
+            .split(" ")
+            .filter((c) => !c.startsWith("bg-") && !c.startsWith("text-"))
+            .join(" ") +
+            " " +
+            statusClass(data.status)
+          ).trim();
       }
 
       const labels = data.labels || [];
-      const daily = data.daily || [];
+      const daily  = data.daily  || [];
       if (labels.length && daily.length) {
         updateCardChart(card, labels, daily);
       }
@@ -257,37 +259,27 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // refresh การ์ดครั้งแรก
+  // refresh รอบแรกทุกการ์ด
   cards.forEach((card) => refreshCard(card));
-
-  // อัปเดต summary หลังจากดึงข้อมูลรอบแรก
   setTimeout(updateStatusSummary, 1000);
 
-  // auto refresh ทุก 30 วินาที
+  // refresh ซ้ำทุก 30s
   const REFRESH_EVERY_MS = 30 * 1000;
   setInterval(() => {
     cards.forEach((card) => refreshCard(card));
     updateStatusSummary();
   }, REFRESH_EVERY_MS);
 
-  // --------------------
-  // Search: filter การ์ดตามหมายเลขเครื่อง / ข้อความ
-  // --------------------
-  // --------------------
-  // Search: filter การ์ดตาม "หมายเลขเครื่อง" เท่านั้น
-  // --------------------
+  // Search ตาม machine no
   const searchInput = document.getElementById("machine-search");
   if (searchInput) {
     searchInput.addEventListener("input", function () {
       const kw = this.value.trim().toLowerCase();
 
       cards.forEach((card) => {
-        const wrapper = card.closest("a") || card; // เผื่อมี <a> ครอบ
         const machineNo = (card.dataset.machineNo || "").toLowerCase();
-
-        // ค้นหาเฉพาะ machineNo ไม่สน text อื่นบนการ์ดแล้ว
-        const match = !kw || machineNo.includes(kw);
-
+        const wrapper   = card.closest("a") || card;
+        const match     = !kw || machineNo.includes(kw);
         wrapper.style.display = match ? "" : "none";
       });
     });
@@ -309,49 +301,50 @@ function openMachineDetailConfirm(machineNo, department) {
       dept
     )}&view=list&machine_no=${encodeURIComponent(machineNo)}`;
 }
+
 // ========================
 // Machine Detail – Scan Logs Today
 // ========================
 async function loadScanLogsToday(machineNo) {
-    const res = await fetch(`/api/machine/${machineNo}/scan_logs_today/`);
-    const data = await res.json();
+  const res = await fetch(`/api/machine/${machineNo}/scan_logs_today/`);
+  const data = await res.json();
 
-    const tbody = document.getElementById("scan-log-table");
-    const totalBox = document.getElementById("scan-total");
+  const tbody = document.getElementById("scan-log-table");
+  const totalBox = document.getElementById("scan-total");
 
-    tbody.innerHTML = "";
+  tbody.innerHTML = "";
 
-    if (!data.logs.length) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="5" class="text-center text-gray-400 p-4">
-                    ไม่พบการสแกนในช่วงเวลานี้
-                </td>
-            </tr>
-        `;
-        totalBox.textContent = "0";
-        return;
-    }
+  if (!data.logs.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" class="text-center text-gray-400 p-4">
+          ไม่พบการสแกนในช่วงเวลานี้
+        </td>
+      </tr>
+    `;
+    totalBox.textContent = "0";
+    return;
+  }
 
-    data.logs.forEach(row => {
-        tbody.innerHTML += `
-            <tr class="border-b hover:bg-gray-50">
-                <td class="p-2">${row.time}</td>
-                <td class="p-2">${row.lot_no}</td>
-                <td class="p-2">${row.part_no}</td>
-                <td class="p-2">${row.customer}</td>
-                <td class="p-2 text-right">${row.qty}</td>
-            </tr>
-        `;
-    });
+  data.logs.forEach(row => {
+    tbody.innerHTML += `
+      <tr class="border-b hover:bg-gray-50">
+        <td class="p-2">${row.time}</td>
+        <td class="p-2">${row.lot_no}</td>
+        <td class="p-2">${row.part_no}</td>
+        <td class="p-2">${row.customer}</td>
+        <td class="p-2 text-right">${row.qty}</td>
+      </tr>
+    `;
+  });
 
-    totalBox.textContent = data.total.toLocaleString();
+  totalBox.textContent = data.total.toLocaleString();
 }
 
-// เรียกครั้งแรก
+// เรียกครั้งแรก (ใช้ในหน้า machine_detail.html)
 if (typeof machineNo !== "undefined") {
-    loadScanLogsToday(machineNo);
+  loadScanLogsToday(machineNo);
 
-    // อัปเดตทุก 10 วินาที
-    setInterval(() => loadScanLogsToday(machineNo), 10000);
+  // อัปเดตทุก 10 วินาที
+  setInterval(() => loadScanLogsToday(machineNo), 10000);
 }

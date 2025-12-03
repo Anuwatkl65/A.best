@@ -516,11 +516,16 @@ def machine_detail(request, machine_no):
         datetime.combine(today, datetime.max.time())
     )
 
-    # ดึง ScanRecord ของเครื่องนี้ในวันนี้
-    scans_qs = ScanRecord.objects.filter(
-        machine_no__iexact=machine_no,
-        scanned_at__range=(start_dt, end_dt),
-    ).select_related("lot").order_by("scanned_at")
+    # ---------- ดึง ScanRecord ของเครื่องนี้ในวันนี้ ----------
+    scans_qs = (
+        ScanRecord.objects
+        .filter(
+            machine_no__iexact=machine_no,
+            scanned_at__range=(start_dt, end_dt),
+        )
+        .select_related("lot")
+        .order_by("scanned_at")
+    )
 
     # filter ตามแผนก
     if dept == "Preform":
@@ -528,7 +533,7 @@ def machine_detail(request, machine_no):
     elif dept != "Overall":
         scans_qs = scans_qs.filter(lot__department__icontains=department_label)
 
-    # สรุป
+    # ---------- สรุป ----------
     total_today = scans_qs.aggregate(s=Sum("qty"))["s"] or 0
     first_scan = scans_qs.first()
     latest_scan = scans_qs.last()
@@ -549,7 +554,15 @@ def machine_detail(request, machine_no):
         elif produced > 0:
             status = "Running"
 
-    # เตรียม row สำหรับตาราง
+    # ---------- แปลง Last Scan เป็น string สำหรับโชว์ ----------
+    if latest_scan:
+        last_scan_display = timezone.localtime(
+            latest_scan.scanned_at
+        ).strftime("%d/%m/%Y %H:%M")
+    else:
+        last_scan_display = "-"
+
+    # ---------- เตรียม rows สำหรับตาราง ----------
     rows = []
     for s in scans_qs:
         lot = s.lot
@@ -570,6 +583,7 @@ def machine_detail(request, machine_no):
         "machine_no": machine_no,
         "today": today,
         "rows": rows,
+
         # summary card
         "status": status,
         "active_lot": active_lot,
@@ -578,8 +592,11 @@ def machine_detail(request, machine_no):
         "total_today": total_today,
         "first_scan": first_scan.scanned_at if first_scan else None,
         "last_scan": latest_scan.scanned_at if latest_scan else None,
+        "last_scan_display": last_scan_display,  # ใช้โชว์ใน template
     }
     return render(request, "production/machine_detail.html", context)
+
+
 
 
 
@@ -1712,7 +1729,8 @@ def lot_chart_data(request, lot_no):
     - agg=day   -> รายวัน, label "23 ก.ย." รองรับ ?from / ?to (YYYY-MM-DD)
     - agg=month -> รายเดือน, label "ก.ย. 25" (ปี 2 หลัก) รองรับ ?from / ?to
     """
-    from django.utils import timezone  # ใช้แปลงเวลาเป็น localtime
+    from django.utils import timezone
+    from datetime import datetime, timedelta
 
     agg = request.GET.get("agg", "hour")
     if agg not in ["hour", "day", "month"]:
@@ -1720,20 +1738,19 @@ def lot_chart_data(request, lot_no):
 
     lot = get_object_or_404(Lot, lot_no=lot_no)
 
-    # ข้อมูลสแกนทั้งหมดของ Lot นี้
     scans_all = ScanRecord.objects.filter(lot=lot).order_by("scanned_at")
 
     if not scans_all.exists():
-        return JsonResponse({"labels": [], "daily": [], "cumulative": []})
+        return JsonResponse(
+            {"labels": [], "daily": [], "cumulative": [], "dates": [], "month_ranges": []}
+        )
 
-    # helper แปลง string -> date
     def parse_date(s):
         try:
             return datetime.strptime(s, "%Y-%m-%d").date()
         except (TypeError, ValueError):
             return None
 
-    # --- อ่านช่วงวันที่จาก query (ใช้กับ day / month, และ hour แบบ optional) ---
     date_from = parse_date(request.GET.get("from"))
     date_to = parse_date(request.GET.get("to"))
     focus_date = parse_date(request.GET.get("date"))
@@ -1743,11 +1760,11 @@ def lot_chart_data(request, lot_no):
     cumulative = []
     running = 0
 
-    # ---------- โหมดรายชั่วโมง (00–23 ของวันเดียว) ----------
+    dates = []
+    month_ranges = []
+
+    # ---------- hour ----------
     if agg == "hour":
-        # วันเป้าหมาย:
-        # 1) ถ้ามี ?date=... ใช้วันนั้น
-        # 2) ถ้าไม่มีก็ใช้วันที่ของ record ล่าสุด
         if focus_date:
             target_date = focus_date
         else:
@@ -1757,12 +1774,11 @@ def lot_chart_data(request, lot_no):
 
         scans_day = scans_all.filter(scanned_at__date=target_date)
 
-        # เตรียม dict 24 ชั่วโมงให้ครบก่อน (แม้จะไม่มี data ก็เป็น 0)
         qty_by_hour = {h: 0 for h in range(24)}
         for s in scans_day:
             local_dt = timezone.localtime(s.scanned_at)
             h = local_dt.hour
-            qty_by_hour[h] += s.qty or 0  # ใช้ qty
+            qty_by_hour[h] += s.qty or 0
 
         for h in range(24):
             q = qty_by_hour[h]
@@ -1771,9 +1787,8 @@ def lot_chart_data(request, lot_no):
             daily.append(q)
             cumulative.append(running)
 
-    # ---------- โหมดรายวัน ----------
+    # ---------- day ----------
     elif agg == "day":
-        # ช่วงวัน: ใช้ from/to ถ้ามี ไม่งั้นใช้ first/last scan
         first_date = timezone.localtime(scans_all.first().scanned_at).date()
         last_date = timezone.localtime(scans_all.last().scanned_at).date()
 
@@ -1789,7 +1804,7 @@ def lot_chart_data(request, lot_no):
         for s in scans_all:
             d = timezone.localtime(s.scanned_at).date()
             if d in qty_by_date:
-                qty_by_date[d] += s.qty or 0  # ใช้ qty
+                qty_by_date[d] += s.qty or 0
 
         for d in date_list:
             q = qty_by_date[d]
@@ -1798,12 +1813,13 @@ def lot_chart_data(request, lot_no):
             daily.append(q)
             cumulative.append(running)
 
-    # ---------- โหมดรายเดือน ----------
-    else:  # agg == "month"
+        dates = [d.isoformat() for d in date_list]
+
+    # ---------- month ----------
+    else:
         first_dt = timezone.localtime(scans_all.first().scanned_at)
         last_dt = timezone.localtime(scans_all.last().scanned_at)
 
-        # ให้ from/to (ถ้ามี) ครอบช่วงเดือน
         if date_from:
             first_dt = first_dt.replace(year=date_from.year, month=date_from.month, day=1)
         if date_to:
@@ -1827,19 +1843,29 @@ def lot_chart_data(request, lot_no):
             dt = timezone.localtime(s.scanned_at)
             key = (dt.year, dt.month)
             if key in qty_by_month:
-                qty_by_month[key] += s.qty or 0  # ใช้ qty
+                qty_by_month[key] += s.qty or 0
 
         for (y, m) in ym_list:
             q = qty_by_month[(y, m)]
             running += q
-            # ปี 2 หลัก เช่น 2025 -> "25"
             labels.append(f"{MONTH_TH[m]} {str(y)[2:]}")
             daily.append(q)
             cumulative.append(running)
 
+        month_ranges = [{"year": y, "month": m} for (y, m) in ym_list]
+
     return JsonResponse(
-        {"labels": labels, "daily": daily, "cumulative": cumulative}
+        {
+            "labels": labels,
+            "daily": daily,
+            "cumulative": cumulative,
+            "dates": dates,
+            "month_ranges": month_ranges,
+        }
     )
+
+
+
     
 # ---------- Helper สำหรับ User Control (ออนไลน์ / เตะออก) ----------
 

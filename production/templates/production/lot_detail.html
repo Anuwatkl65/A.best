@@ -1,97 +1,93 @@
-  {% extends "production/base.html" %}
-  {% load humanize %}
+{% extends "production/base.html" %}
+{% load humanize %}
 
-  {% block title %}Lot {{ lot.lot_no }} · {{ department_label }}{% endblock %}
+{% block title %}Lot {{ lot.lot_no }} · {{ department_label }}{% endblock %}
 
-  {% block content %}
-  <div class="max-w-5xl mx-auto px-4 py-6">
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-6">
 
-    <!-- breadcrumb + ปุ่มย้อนกลับแบบฉลาด (จำ view เดิม) -->
-    <div class="flex items-center justify-between mb-6">
-      <div class="text-sm text-gray-500 flex items-center gap-2">
-        <a href="{% url 'home_menu' %}" class="hover:text-purple-600">Home</a>
-        <span>/</span>
-        <a href="{% url 'dashboard' %}?department={{ department }}&view={{ back_view|default:'list' }}"
-          class="hover:text-purple-600">
-          Dashboard: {{ department_label }}
-        </a>
-        <span>/</span>
-        <span class="font-semibold text-gray-800">Lot {{ lot.lot_no }}</span>
-      </div>
-
-  <a href="{{ back_url }}"
-    class="px-4 py-2 rounded-full bg-white text-sm border border-purple-300 shadow-sm hover:bg-purple-50 flex items-center gap-1">
-    <span class="material-symbols-outlined text-[18px]">arrow_back</span>
-    {{ back_label }}
-  </a>
-
+  <!-- breadcrumb + ปุ่มย้อนกลับแบบฉลาด (จำ view เดิม) -->
+  <div class="flex items-center justify-between mb-6">
+    <div class="text-sm text-gray-500 flex items-center gap-2">
+      <a href="{% url 'home_menu' %}" class="hover:text-purple-600">Home</a>
+      <span>/</span>
+      <a href="{% url 'dashboard' %}?department={{ department }}&view={{ back_view|default:'list' }}"
+         class="hover:text-purple-600">
+        Dashboard: {{ department_label }}
+      </a>
+      <span>/</span>
+      <span class="font-semibold text-gray-800">Lot {{ lot.lot_no }}</span>
     </div>
 
+    <a href="{{ back_url }}"
+       class="px-4 py-2 rounded-full bg-white text-sm border border-purple-300 shadow-sm hover:bg-purple-50 flex items-center gap-1">
+      <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+      {{ back_label }}
+    </a>
+  </div>
 
-    <!-- หัวข้อหลัก -->
-    <div class="bg-white rounded-2xl shadow-sm border border-purple-200/70 p-5 mb-6">
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <h1 class="text-2xl font-extrabold text-gray-900 mb-1">
-            Lot {{ lot.lot_no }}
-          </h1>
-          <p class="text-sm text-gray-600">
-            Part No: <span class="font-semibold">{{ lot.part_no|default:"-" }}</span>
-            · Customer: <span class="font-semibold">{{ lot.customer|default:"-" }}</span>
-          </p>
-          <p class="text-xs text-gray-500 mt-1">
-            Department: {{ lot.department|default:"-" }} · Machine: {{ lot.machine_no|default:"-" }}
-          </p>
-        </div>
-
-        <div class="text-right">
-          <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold
-            {% if lot.type|lower == 'order' %}bg-green-50 text-green-700 border border-green-200
-            {% elif lot.type|lower == 'sample' %}bg-yellow-50 text-yellow-700 border border-yellow-200
-            {% elif lot.type|lower == 'reserved' %}bg-blue-50 text-blue-700 border border-blue-200
-            {% elif lot.type|lower == 'extra' %}bg-orange-50 text-orange-700 border border-orange-200
-            {% elif lot.type|lower == 'claim' %}bg-rose-50 text-rose-700 border border-rose-200
-            {% else %}bg-gray-50 text-gray-700 border border-gray-200{% endif %}">
-            {{ lot.type|default:"Order" }}
-          </span>
-
-          <p class="text-xs text-gray-400 mt-2">
-            เป้า: {{ target|default:0|intcomma }} pcs<br>
-            ผลิตแล้ว: {{ produced|default:0|intcomma }} pcs
-          </p>
-        </div>
+  <!-- หัวข้อหลัก -->
+  <div class="bg-white rounded-2xl shadow-sm border border-purple-200/70 p-5 mb-6">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-extrabold text-gray-900 mb-1">
+          Lot {{ lot.lot_no }}
+        </h1>
+        <p class="text-sm text-gray-600">
+          Part No: <span class="font-semibold">{{ lot.part_no|default:"-" }}</span>
+          · Customer: <span class="font-semibold">{{ lot.customer|default:"-" }}</span>
+        </p>
+        <p class="text-xs text-gray-500 mt-1">
+          Department: {{ lot.department|default:"-" }} · Machine: {{ lot.machine_no|default:"-" }}
+        </p>
       </div>
 
-      <!-- progress bar -->
-      <div class="mt-4">
-        <div class="w-full h-4 rounded-full bg-gray-200 overflow-hidden">
-          <div class="h-4 rounded-full bg-lime-400"
-              style="width: {{ progress }}%;"></div>
-        </div>
-        <div class="flex justify-between text-xs text-gray-500 mt-1.5">
-          <span>ความคืบหน้า: <span class="font-semibold">{{ progress }}%</span></span>
-          <span>ประมาณจำนวนกล่อง: <span class="font-semibold">{{ boxes|intcomma }}</span></span>
-        </div>
-      </div>
+      <div class="text-right">
+        <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold
+          {% if lot.type|lower == 'order' %}bg-green-50 text-green-700 border border-green-200
+          {% elif lot.type|lower == 'sample' %}bg-yellow-50 text-yellow-700 border border-yellow-200
+          {% elif lot.type|lower == 'reserved' %}bg-blue-50 text-blue-700 border border-blue-200
+          {% elif lot.type|lower == 'extra' %}bg-orange-50 text-orange-700 border border-orange-200
+          {% elif lot.type|lower == 'claim' %}bg-rose-50 text-rose-700 border border-rose-200
+          {% else %}bg-gray-50 text-gray-700 border border-gray-200{% endif %}">
+          {{ lot.type|default:"Order" }}
+        </span>
 
-      <!-- first / last scan -->
-      <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-gray-500">
-        <div>
-          <span class="block text-gray-400">สแกนครั้งแรก</span>
-          <span class="font-semibold">
-            {% if lot.first_scan %}{{ lot.first_scan|date:"d/m/Y H:i:s" }}{% else %}-{% endif %}
-          </span>
-        </div>
-        <div>
-          <span class="block text-gray-400">สแกนล่าสุด</span>
-          <span class="font-semibold">
-            {% if lot.last_scan %}{{ lot.last_scan|date:"d/m/Y H:i:s" }}{% else %}-{% endif %}
-          </span>
-        </div>
+        <p class="text-xs text-gray-400 mt-2">
+          เป้า: {{ target|default:0|intcomma }} pcs<br>
+          ผลิตแล้ว: {{ produced|default:0|intcomma }} pcs
+        </p>
       </div>
     </div>
 
-    <!-- กราฟปริมาณการสแกน -->
+    <!-- progress bar -->
+    <div class="mt-4">
+      <div class="w-full h-4 rounded-full bg-gray-200 overflow-hidden">
+        <div class="h-4 rounded-full bg-lime-400" style="width: {{ progress }}%;"></div>
+      </div>
+      <div class="flex justify-between text-xs text-gray-500 mt-1.5">
+        <span>ความคืบหน้า: <span class="font-semibold">{{ progress }}%</span></span>
+        <span>ประมาณจำนวนกล่อง: <span class="font-semibold">{{ boxes|intcomma }}</span></span>
+      </div>
+    </div>
+
+    <!-- first / last scan -->
+    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-gray-500">
+      <div>
+        <span class="block text-gray-400">สแกนครั้งแรก</span>
+        <span class="font-semibold">
+          {% if lot.first_scan %}{{ lot.first_scan|date:"d/m/Y H:i:s" }}{% else %}-{% endif %}
+        </span>
+      </div>
+      <div>
+        <span class="block text-gray-400">สแกนล่าสุด</span>
+        <span class="font-semibold">
+          {% if lot.last_scan %}{{ lot.last_scan|date:"d/m/Y H:i:s" }}{% else %}-{% endif %}
+        </span>
+      </div>
+    </div>
+  </div>
+
     <!-- กราฟปริมาณการสแกน -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 mb-6">
       <div class="flex items-center justify-between mb-3">
@@ -108,174 +104,183 @@
         </div>
 
         <!-- dropdown เลือกมุมมองกราฟ -->
-          <input type="hidden" name="department" value="{{ department }}">
-
-          <label for="agg" class="text-gray-500">มุมมอง:</label>
-          <select id="agg" name="agg"
-                  class="border border-gray-300 rounded-full px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  onchange="this.form.submit()">
-            <option value="hour" {% if agg == "hour" %}selected{% endif %}>รายชั่วโมง</option>
-            <option value="day" {% if agg == "day" %}selected{% endif %}>รายวัน</option>
-            <option value="month" {% if agg == "month" %}selected{% endif %}>รายเดือน</option>
-          </select>
+        <input type="hidden" name="department" value="{{ department }}">
+        <label for="agg" class="text-gray-500">มุมมอง:</label>
+        <select id="agg" name="agg"
+                class="border border-gray-300 rounded-full px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500">
+          <option value="hour"  {% if agg == "hour"  %}selected{% endif %}>รายชั่วโมง</option>
+          <option value="day"   {% if agg == "day"   %}selected{% endif %}>รายวัน</option>
+          <option value="month" {% if agg == "month" %}selected{% endif %}>รายเดือน</option>
+        </select>
       </div>
 
-      {% if chart_labels and chart_daily %}
-        <div class="w-full h-72">
-          <canvas id="lotScanChart"></canvas>
-        </div>
-      {% else %}
-        <p class="text-sm text-gray-400 text-center py-6">
-          ยังไม่มีข้อมูลการสแกนเพียงพอสำหรับแสดงกราฟ
-        </p>
-      {% endif %}
+      <!-- ✅ ให้ canvas มีตลอด แล้วให้ JS เป็นคนตัดสินใจว่าจะโชว์กราฟหรือข้อความ -->
+      <div class="w-full h-72">
+        <canvas id="lotScanChart"></canvas>
+      </div>
+      <p id="lotChartEmptyMsg"
+         class="text-sm text-gray-400 text-center py-3 hidden">
+        ยังไม่มีข้อมูลการสแกนเพียงพอสำหรับแสดงกราฟ
+      </p>
     </div>
 
 
-    <!-- Log การสแกน + Filter / Sort -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
-        <div>
-          <h2 class="text-lg font-semibold text-gray-800">ประวัติการสแกน</h2>
-          <span class="text-xs text-gray-400">
-            ทั้งหมด {{ scan_logs|length }} รายการ
-          </span>
-        </div>
-
   <!-- Log การสแกน + Filter / Sort -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
-        <div>
-          <h2 class="text-lg font-semibold text-gray-800">ประวัติการสแกน</h2>
-          <span id="scan-count" class="text-xs text-gray-400">
-            ทั้งหมด {{ scan_logs|length }} รายการ
-          </span>
-        </div>
-
-        <!-- 🔥 เปลี่ยนจาก form เป็น div ธรรมดา -->
-        <div class="flex flex-wrap items-center gap-2 text-xs md:justify-end" id="scan-filter-bar">
-          <!-- sort -->
-          <label for="scan_order" class="text-gray-500">เรียงตาม:</label>
-          <select id="scan_order"
-                  class="border border-gray-300 rounded-full px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500">
-            <option value="newest" {% if scan_order == 'newest' %}selected{% endif %}>ใหม่สุดก่อน</option>
-            <option value="oldest" {% if scan_order == 'oldest' %}selected{% endif %}>เก่าสุดก่อน</option>
-            <option value="qty_desc" {% if scan_order == 'qty_desc' %}selected{% endif %}>ปริมาณมาก → น้อย</option>
-            <option value="qty_asc" {% if scan_order == 'qty_asc' %}selected{% endif %}>ปริมาณน้อย → มาก</option>
-          </select>
-
-          <!-- filter machine -->
-          <label for="scan_machine" class="text-gray-500">เครื่อง:</label>
-          <select id="scan_machine"
-                  class="border border-gray-300 rounded-full px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500">
-            <option value="all" {% if scan_machine == 'all' %}selected{% endif %}>ทุกเครื่อง</option>
-            {% for m in scan_machines %}
-              <option value="{{ m }}" {% if scan_machine == m %}selected{% endif %}>{{ m }}</option>
-            {% endfor %}
-          </select>
-
-          <!-- filter date range -->
-          <label for="scan_from" class="text-gray-500">ตั้งแต่:</label>
-          <input type="date" id="scan_from"
-                value="{{ scan_from }}"
-                class="border border-gray-300 rounded-full px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500">
-
-          <label for="scan_to" class="text-gray-500">ถึง:</label>
-          <input type="date" id="scan_to"
-                value="{{ scan_to }}"
-                class="border border-gray-300 rounded-full px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500">
-
-          <button type="button" id="scan-filter-btn"
-                  class="px-3 py-1.5 rounded-full bg-purple-600 text-white font-medium hover:bg-purple-700">
-            กรอง
-          </button>
-
-          <button type="button" id="scan-clear-btn"
-                  class="px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200">
-            ล้าง
-          </button>
-        </div>
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
+      <div>
+        <h2 class="text-lg font-semibold text-gray-800">ประวัติการสแกน</h2>
+        <span id="scan-count" class="text-xs text-gray-400">
+          ทั้งหมด {{ scan_logs|length }} รายการ
+        </span>
       </div>
 
-      {% if scan_logs %}
-        <div class="overflow-x-auto">
-          <table class="min-w-full text-xs border-t border-gray-100">
-            <thead class="bg-gray-50 text-gray-500">
-              <tr>
-                <th class="px-3 py-2 text-left font-medium">เวลา</th>
-                <th class="px-3 py-2 text-left font-medium">เครื่อง</th>
-                <th class="px-3 py-2 text-right font-medium">จำนวน (pcs)</th>
+      <!-- แถบ filter -->
+      <div class="flex flex-wrap items-center gap-2 text-xs md:justify-end" id="scan-filter-bar">
+        <label for="scan_order" class="text-gray-500">เรียงตาม:</label>
+        <select id="scan_order"
+                class="border border-gray-300 rounded-full px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500">
+          <option value="newest"  {% if scan_order == 'newest'  %}selected{% endif %}>ใหม่สุดก่อน</option>
+          <option value="oldest"  {% if scan_order == 'oldest'  %}selected{% endif %}>เก่าสุดก่อน</option>
+          <option value="qty_desc"{% if scan_order == 'qty_desc' %}selected{% endif %}>ปริมาณมาก → น้อย</option>
+          <option value="qty_asc" {% if scan_order == 'qty_asc' %}selected{% endif %}>ปริมาณน้อย → มาก</option>
+        </select>
+
+        <label for="scan_machine" class="text-gray-500">เครื่อง:</label>
+        <select id="scan_machine"
+                class="border border-gray-300 rounded-full px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500">
+          <option value="all" {% if scan_machine == 'all' %}selected{% endif %}>ทุกเครื่อง</option>
+          {% for m in scan_machines %}
+            <option value="{{ m }}" {% if scan_machine == m %}selected{% endif %}>{{ m }}</option>
+          {% endfor %}
+        </select>
+
+        <label for="scan_from" class="text-gray-500">ตั้งแต่:</label>
+        <input type="date" id="scan_from"
+               value="{{ scan_from }}"
+               class="border border-gray-300 rounded-full px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500">
+
+        <label for="scan_to" class="text-gray-500">ถึง:</label>
+        <input type="date" id="scan_to"
+               value="{{ scan_to }}"
+               class="border border-gray-300 rounded-full px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500">
+
+        <button type="button" id="scan-filter-btn"
+                class="px-3 py-1.5 rounded-full bg-purple-600 text-white font-medium hover:bg-purple-700">
+          กรอง
+        </button>
+
+        <button type="button" id="scan-clear-btn"
+                class="px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200">
+          ล้าง
+        </button>
+      </div>
+    </div>
+
+    {% if scan_logs %}
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-xs border-t border-gray-100">
+          <thead class="bg-gray-50 text-gray-500">
+            <tr>
+              <th class="px-3 py-2 text-left font-medium">เวลา</th>
+              <th class="px-3 py-2 text-left font-medium">เครื่อง</th>
+              <th class="px-3 py-2 text-right font-medium">จำนวน (pcs)</th>
+            </tr>
+          </thead>
+          <tbody id="scan-logs-body" class="divide-y divide-gray-100">
+            {% for s in scan_logs %}
+              <tr class="hover:bg-gray-50"
+                  data-ts="{{ s.scanned_at|date:'c' }}"
+                  data-machine="{{ s.machine_no|default_if_none:'' }}"
+                  data-qty="{{ s.qty }}">
+                <td class="px-3 py-2">
+                  {{ s.scanned_at|date:"d/m/Y H:i:s" }}
+                </td>
+                <td class="px-3 py-2">
+                  {{ s.machine_no|default:"-" }}
+                </td>
+                <td class="px-3 py-2 text-right">
+                  {{ s.qty|intcomma }}
+                </td>
               </tr>
-            </thead>
-            <tbody id="scan-logs-body" class="divide-y divide-gray-100">
-              {% for s in scan_logs %}
-                <tr class="hover:bg-gray-50"
-                    data-ts="{{ s.scanned_at|date:'c' }}"
-                    data-machine="{{ s.machine_no|default_if_none:'' }}"
-                    data-qty="{{ s.qty }}">
-                  <td class="px-3 py-2">
-                    {{ s.scanned_at|date:"d/m/Y H:i:s" }}
-                  </td>
-                  <td class="px-3 py-2">
-                    {{ s.machine_no|default:"-" }}
-                  </td>
-                  <td class="px-3 py-2 text-right">
-                    {{ s.qty|intcomma }}
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% else %}
-        <p class="text-sm text-gray-400">ยังไม่มีข้อมูลการสแกนสำหรับ Lot นี้</p>
-      {% endif %}
-
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-sm text-gray-400">ยังไม่มีข้อมูลการสแกนสำหรับ Lot นี้</p>
+    {% endif %}
   </div>
-  {% endblock %}
+</div>
+{% endblock %}
 
-  {% block extra_js %}
-  {{ block.super }}
+{% block page_js %}
+{{ block.super }}
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <script>
+<script>
   (function () {
     const canvas = document.getElementById("lotScanChart");
     if (!canvas) return;
+
     const ctx = canvas.getContext("2d");
+    const emptyMsg = document.getElementById("lotChartEmptyMsg");
 
     let chart = null;
+    const department = "{{ department }}";
+    const lotNo = "{{ lot.lot_no }}";
 
-    // ฟังก์ชันโหลดข้อมูลจาก backend แล้วอัปเดตกราฟ
+    function getDateFilters() {
+      const fromInput = document.getElementById("scan_from");
+      const toInput   = document.getElementById("scan_to");
+
+      return {
+        from: fromInput ? fromInput.value : "",
+        to:   toInput   ? toInput.value   : "",
+      };
+    }
+
     async function loadChart(agg) {
-      const department = "{{ department }}";
-      const lotNo = "{{ lot.lot_no }}";
-
-      const url = new URL(
-        "{% url 'lot_chart_data' lot.lot_no %}",
-        window.location.origin
-      );
+      const url = new URL("{% url 'lot_chart_data' lot.lot_no %}", window.location.origin);
       url.searchParams.set("agg", agg);
       url.searchParams.set("department", department);
 
-      const res = await fetch(url);
+      const { from, to } = getDateFilters();
+
+      if (agg === "hour") {
+        if (from && to && from === to) {
+          url.searchParams.set("date", from);
+        } else if (to) {
+          url.searchParams.set("date", to);
+        }
+      } else {
+        if (from) url.searchParams.set("from", from);
+        if (to)   url.searchParams.set("to", to);
+      }
+
+      const res  = await fetch(url);
       const data = await res.json();
 
-      const labels = data.labels || [];
-      const daily = data.daily || [];
+      const labels     = data.labels || [];
+      const daily      = data.daily || [];
       const cumulative = data.cumulative || [];
 
-      if (!labels.length) return;
-
-      if (chart) {
-        chart.destroy();
+      if (!labels.length) {
+        if (chart) {
+          chart.destroy();
+          chart = null;
+        }
+        if (emptyMsg) emptyMsg.classList.remove("hidden");
+        return;
+      } else {
+        if (emptyMsg) emptyMsg.classList.add("hidden");
       }
+
+      if (chart) chart.destroy();
 
       chart = new Chart(ctx, {
         type: "bar",
         data: {
-          labels: labels,
+          labels,
           datasets: [
             {
               type: "bar",
@@ -305,18 +310,14 @@
           responsive: true,
           maintainAspectRatio: false,
           interaction: { mode: "index", intersect: false },
-          // 👇 คลิก drill-down โดยไม่รีหน้า
           onClick: function (evt, elements) {
             if (!elements || !elements.length) return;
-
-            let currentAgg = aggSelector.value || "hour";
+            const currentAgg = aggSelector ? aggSelector.value || "hour" : "hour";
             let nextAgg = null;
-
             if (currentAgg === "month") nextAgg = "day";
             else if (currentAgg === "day") nextAgg = "hour";
             else return;
-
-            aggSelector.value = nextAgg;
+            if (aggSelector) aggSelector.value = nextAgg;
             loadChart(nextAgg);
           },
           scales: {
@@ -342,21 +343,16 @@
                 },
               },
             },
-            x: {
-              ticks: { maxRotation: 45, minRotation: 0 },
-            },
+            x: { ticks: { maxRotation: 45, minRotation: 0 } },
           },
           plugins: {
-            legend: {
-              labels: { usePointStyle: true, boxWidth: 10 },
-            },
+            legend: { labels: { usePointStyle: true, boxWidth: 10 } },
             tooltip: {
               callbacks: {
-                label: function (ctx) {
+                label: (ctx) => {
                   const raw = ctx.raw;
-                  const formatted =
-                    raw && raw.toLocaleString ? raw.toLocaleString() : raw;
-                  return ctx.dataset.label + ": " + formatted + " pcs";
+                  const v = raw && raw.toLocaleString ? raw.toLocaleString() : raw;
+                  return ctx.dataset.label + ": " + v + " pcs";
                 },
               },
             },
@@ -365,7 +361,6 @@
       });
     }
 
-    // ผูกกับ dropdown มุมมอง
     const aggSelector = document.getElementById("agg");
     if (aggSelector) {
       aggSelector.addEventListener("change", function () {
@@ -374,22 +369,25 @@
       });
     }
 
-    // โหลดครั้งแรก ตามค่า agg ปัจจุบัน
+    window.__reloadLotChart = function () {
+      const agg = (aggSelector && aggSelector.value) || "{{ agg|default:'hour' }}";
+      loadChart(agg);
+    };
+
     const initialAgg = "{{ agg|default:'hour' }}";
-    if (aggSelector) {
-      aggSelector.value = initialAgg;
-    }
+    if (aggSelector) aggSelector.value = initialAgg;
     loadChart(initialAgg);
   })();
-  </script>
+</script>
 
-  <script>
+<!-- ✅ JS ฟิลเตอร์ตาราง + ผูกกับกราฟ -->
+<script>
   (function () {
     const tbody = document.getElementById("scan-logs-body");
     if (!tbody) return;
 
     const rows = Array.from(tbody.querySelectorAll("tr"));
-    const originalRows = rows.slice();  // เก็บลำดับเดิมไว้สำหรับปุ่ม "ล้าง"
+    const originalRows = rows.slice();
 
     const orderSel   = document.getElementById("scan_order");
     const machineSel = document.getElementById("scan_machine");
@@ -402,32 +400,23 @@
     function applyFilters() {
       let filtered = rows.slice();
 
-      // 1) กรองตามเครื่อง
       const machine = machineSel ? machineSel.value : "all";
       if (machine && machine !== "all") {
         filtered = filtered.filter(tr => (tr.dataset.machine || "") === machine);
       }
 
-      // 2) กรองตามวันที่
       const fromVal = fromInput && fromInput.value;
       const toVal   = toInput && toInput.value;
 
       if (fromVal) {
         const fromTime = new Date(fromVal + "T00:00:00").getTime();
-        filtered = filtered.filter(tr => {
-          const t = new Date(tr.dataset.ts).getTime();
-          return t >= fromTime;
-        });
+        filtered = filtered.filter(tr => new Date(tr.dataset.ts).getTime() >= fromTime);
       }
       if (toVal) {
         const toTime = new Date(toVal + "T23:59:59").getTime();
-        filtered = filtered.filter(tr => {
-          const t = new Date(tr.dataset.ts).getTime();
-          return t <= toTime;
-        });
+        filtered = filtered.filter(tr => new Date(tr.dataset.ts).getTime() <= toTime);
       }
 
-      // 3) เรียงลำดับ
       const order = orderSel ? orderSel.value : "newest";
       filtered.sort((a, b) => {
         const ta = new Date(a.dataset.ts).getTime();
@@ -435,27 +424,21 @@
         const qa = parseFloat(a.dataset.qty || "0");
         const qb = parseFloat(b.dataset.qty || "0");
 
-        if (order === "oldest") {
-          return ta - tb;              // เก่าสุดก่อน
-        }
-        if (order === "qty_desc") {
-          if (qb !== qa) return qb - qa; // ปริมาณมาก → น้อย
-          return tb - ta;
-        }
-        if (order === "qty_asc") {
-          if (qa !== qb) return qa - qb; // ปริมาณน้อย → มาก
-          return ta - tb;
-        }
-        // default: newest
-        return tb - ta;                // ใหม่สุดก่อน
+        if (order === "oldest")   return ta - tb;
+        if (order === "qty_desc") return qb !== qa ? qb - qa : tb - ta;
+        if (order === "qty_asc")  return qa !== qb ? qa - qb : ta - tb;
+        return tb - ta; // newest
       });
 
-      // 4) ใส่แถวใหม่กลับเข้า tbody
       tbody.innerHTML = "";
       filtered.forEach(tr => tbody.appendChild(tr));
 
       if (countSpan) {
         countSpan.textContent = `ทั้งหมด ${filtered.length} รายการ`;
+      }
+
+      if (window.__reloadLotChart) {
+        window.__reloadLotChart();
       }
     }
 
@@ -471,15 +454,17 @@
       if (countSpan) {
         countSpan.textContent = `ทั้งหมด ${originalRows.length} รายการ`;
       }
+
+      if (window.__reloadLotChart) {
+        window.__reloadLotChart();
+      }
     }
 
     if (filterBtn) filterBtn.addEventListener("click", applyFilters);
     if (clearBtn)  clearBtn.addEventListener("click", clearFilters);
-
-    // ใช้ on-change ให้มันกรองทันทีโดยไม่ต้องกดปุ่มก็ได้
     if (orderSel)   orderSel.addEventListener("change", applyFilters);
     if (machineSel) machineSel.addEventListener("change", applyFilters);
   })();
-  </script>
+</script>
 
-  {% endblock %}
+{% endblock %}
