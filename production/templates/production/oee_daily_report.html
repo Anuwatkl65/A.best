@@ -1,0 +1,107 @@
+    {% extends "production/base.html" %}
+    {% load humanize %}
+
+    {% block title %}OEE Daily Report · {{ date_str }}{% endblock %}
+
+    {% block content %}
+    <div class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+
+    <div class="flex items-center justify-between mb-4">
+        <div>
+        <h1 class="text-2xl font-extrabold text-gray-900">
+            OEE Daily Report
+        </h1>
+        <p class="text-xs text-gray-500">
+            รายงานรายวัน (00:00–23:59) · วันที่ {{ report_date|date:"d/m/Y" }}
+        </p>
+        </div>
+
+        <a href="{% url 'home_menu' %}"
+        class="inline-flex items-center px-3 py-1.5 rounded-full text-xs border border-gray-300 bg-white hover:bg-gray-50">
+        <span class="material-symbols-outlined text-sm mr-1">arrow_back</span>
+        กลับเมนูหลัก
+        </a>
+    </div>
+
+    <!-- Filter -->
+    <form method="get" class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-wrap gap-3 items-end">
+        <div>
+        <label class="block text-[11px] font-semibold text-gray-600 mb-1">วันที่</label>
+        <input type="date" name="date" value="{{ date_str }}"
+                class="border border-gray-300 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/70">
+        </div>
+
+        <div>
+        <label class="block text-[11px] font-semibold text-gray-600 mb-1">เครื่อง</label>
+        <input type="text" name="machine_no" value="{{ selected_machine }}"
+                placeholder="เช่น M308"
+                class="border border-gray-300 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/70">
+        </div>
+
+        <div>
+        <label class="block text-[11px] font-semibold text-gray-600 mb-1">แผนก</label>
+        <input type="text" name="department" value="{{ selected_department }}"
+                placeholder="เช่น พรีฟอร์ม"
+                class="border border-gray-300 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/70">
+        </div>
+
+        <button type="submit"
+                class="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700">
+        ดูรายงาน
+        </button>
+    </form>
+
+    <!-- Summary -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 text-sm text-gray-700">
+        <div class="font-semibold mb-1">สรุปรวมทั้งวัน</div>
+        <p>
+        Total Time รวมทุก LOT: <span class="font-mono">{{ grand.total_hms }}</span>,
+        Runtime รวม: <span class="font-mono">{{ grand.runtime_hms }}</span>,
+        A% รวม: <span class="font-mono">{{ grand.availability }}%</span>
+        </p>
+    </div>
+
+    <!-- Table -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <table class="min-w-full text-xs">
+        <thead class="bg-slate-50 text-slate-600">
+            <tr>
+            <th class="px-3 py-2 text-left font-semibold">LOT</th>
+            <th class="px-3 py-2 text-left font-semibold">Part</th>
+            <th class="px-3 py-2 text-left font-semibold">Customer</th>
+            <th class="px-3 py-2 text-left font-semibold">Machine</th>
+            <th class="px-3 py-2 text-left font-semibold">Dept.</th>
+            <th class="px-3 py-2 text-right font-semibold">Total</th>
+            <th class="px-3 py-2 text-right font-semibold">Downtime</th>
+            <th class="px-3 py-2 text-right font-semibold">Runtime</th>
+            <th class="px-3 py-2 text-right font-semibold">A%</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if rows %}
+            {% for r in rows %}
+                <tr class="border-t border-slate-100 hover:bg-slate-50">
+                <td class="px-3 py-2 font-mono text-[11px]">{{ r.lot_no }}</td>
+                <td class="px-3 py-2">{{ r.part_no|default:"-" }}</td>
+                <td class="px-3 py-2">{{ r.customer|default:"-" }}</td>
+                <td class="px-3 py-2">{{ r.machine_no|default:"-" }}</td>
+                <td class="px-3 py-2">{{ r.department|default:"-" }}</td>
+                <td class="px-3 py-2 text-right font-mono">{{ r.total_hms }}</td>
+                <td class="px-3 py-2 text-right font-mono">{{ r.downtime_hms }}</td>
+                <td class="px-3 py-2 text-right font-mono">{{ r.runtime_hms }}</td>
+                <td class="px-3 py-2 text-right font-mono">{{ r.availability }}%</td>
+                </tr>
+            {% endfor %}
+            {% else %}
+            <tr>
+                <td colspan="9" class="px-3 py-6 text-center text-slate-400">
+                ยังไม่มีข้อมูลในวันที่เลือก
+                </td>
+            </tr>
+            {% endif %}
+        </tbody>
+        </table>
+    </div>
+
+    </div>
+    {% endblock %}

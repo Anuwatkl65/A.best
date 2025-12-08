@@ -1,28 +1,29 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 
+import json
 import openpyxl
 import pandas as pd
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.sessions.models import Session
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.db.models import Sum, Q
 from django.db.models.functions import TruncDate, TruncHour, TruncMonth, Coalesce
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.sessions.models import Session
-from django.contrib.auth.models import User
 from django.utils.timezone import now
-
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 
 from openpyxl.utils import get_column_letter
 
-from .models import Lot, ScanRecord, UserProfile, Machine
+from .models import Lot, ScanRecord, UserProfile, Machine, DowntimeLog
+
 
 
 MONTH_TH = {
@@ -2181,3 +2182,472 @@ def _is_admin(user):
         return False
     profile = getattr(user, "userprofile", None)
     return (profile and profile.role == "admin") or user.is_superuser
+
+# ---------- OEE Operator Panel (ใหม่) ----------
+
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django.http import JsonResponse
+
+from .models import Lot, DowntimeLog
+
+
+@login_required
+def oee_operator(request):
+    """หน้า Operator Panel (template + JS)"""
+    return render(request, "production/oee_operator.html")
+
+
+# ====== Helper payloads ======
+
+def lot_status_payload(lot: Lot):
+    """ข้อมูลสถานะ LOT + flag ว่ามี BREAK ค้างอยู่ไหม + โหมดการทำงาน"""
+    break_open = lot.downtime_logs.filter(end_time__isnull=True).first()
+    return {
+        "lot_no": lot.lot_no,
+        "part_no": lot.part_no,
+        "customer": lot.customer,
+        "machine_no": lot.machine_no,
+        "department": lot.department,
+        "status": lot.status,
+        "start_time": lot.start_time.isoformat() if lot.start_time else None,
+        "end_time": lot.end_time.isoformat() if lot.end_time else None,
+        "has_open_break": bool(break_open),
+        "last_break_start": break_open.start_time.isoformat() if break_open else None,
+        # โหมดการทำงานปัจจุบัน (Setup / Production)
+        "operation_mode": getattr(lot, "operation_mode", None),
+    }
+
+
+def lot_time_payload(lot: Lot):
+    """ข้อมูลเวลารวม / downtime / runtime + ค่า A (ทั้ง seconds และ minutes)"""
+    return {
+        # ใช้ seconds เป็นหลัก
+        "total_seconds": lot.total_time_seconds,
+        "downtime_seconds": lot.total_downtime_seconds,
+        "runtime_seconds": lot.runtime_seconds,
+
+        # เผื่อที่ไหนยังใช้เป็นนาทีอยู่
+        "total_minutes": lot.total_time_minutes,
+        "downtime_minutes": lot.total_downtime_minutes,
+        "runtime_minutes": lot.runtime_minutes,
+
+        # ข้อความแสดงผล
+        "display_total_time": lot.display_total_time,
+        "display_downtime": lot.display_downtime,
+        "display_runtime": lot.display_runtime,
+        "availability_percent": lot.availability_percent,
+    }
+
+
+def lot_actions_payload(lot: Lot):
+    """
+    บอกว่าแต่ละปุ่มกดได้ไหม
+    - UI มี 3 ปุ่ม: START, BREAK/CONTINUE, END
+    - backend ใช้ action 4 แบบ: start / break / resume / end
+    (UI จะเลือกส่ง break หรือ resume ตาม has_open_break)
+    """
+    break_open = lot.downtime_logs.filter(end_time__isnull=True).first()
+
+    can_start = lot.start_time is None
+    is_finished = lot.end_time is not None
+
+    can_end = (lot.start_time is not None) and not is_finished
+    can_break = (lot.start_time is not None) and not is_finished and not break_open
+    can_resume = (lot.start_time is not None) and not is_finished and bool(break_open)
+
+    return {
+        "can_start": can_start,
+        "can_break": can_break,      # ใช้ตอนปุ่มแสดงคำว่า BREAK
+        "can_resume": can_resume,    # ใช้ตอนปุ่มเปลี่ยนเป็น CONTINUE
+        "can_end": can_end,
+    }
+
+
+# ====== API: GET สถานะปัจจุบัน ======
+
+@login_required
+def oee_get_status(request):
+    """API: ดึงสถานะปัจจุบันของ Lot ที่ระบุ (ใช้ตอนกดปุ่มโหลด LOT)"""
+    lot_no = (request.GET.get("lot_no") or "").strip()
+    if not lot_no:
+        return JsonResponse({"ok": False, "error": "missing lot_no"}, status=400)
+
+    lot = get_object_or_404(Lot, lot_no=lot_no)
+
+    return JsonResponse({
+        "ok": True,
+        "lot": lot_status_payload(lot),
+        "time": lot_time_payload(lot),
+        "actions": lot_actions_payload(lot),
+    })
+
+
+# ====== API: POST ทำ action (start / break / resume / end / set_mode) ======
+
+@login_required
+@require_POST
+def oee_do_action(request):
+    """
+    API: รับ action = start / break / resume / end / set_mode
+    แล้วอัปเดต Lot + DowntimeLog
+    รองรับทั้ง JSON body และ form-encoded
+    """
+    # ----- แปลง body เป็น dict -----
+    if request.content_type and "application/json" in request.content_type:
+        try:
+            payload = json.loads(request.body.decode("utf-8") or "{}")
+        except json.JSONDecodeError:
+            return JsonResponse({"ok": False, "error": "invalid JSON"}, status=400)
+    else:
+        payload = request.POST
+
+    action = (payload.get("action") or "").strip().lower()
+    lot_no = (payload.get("lot_no") or "").strip()
+
+    if action not in ("start", "break", "resume", "end", "set_mode"):
+        return JsonResponse({"ok": False, "error": "invalid action"}, status=400)
+    if not lot_no:
+        return JsonResponse({"ok": False, "error": "missing lot_no"}, status=400)
+
+    lot = get_object_or_404(Lot, lot_no=lot_no)
+    now = timezone.now()
+
+    # --------- Action Logic ---------
+    if action == "start":
+        # เริ่มงานครั้งแรกเท่านั้น ถ้าเริ่มไปแล้วไม่ reset
+        if not lot.start_time:
+            lot.start_time = now
+            lot.end_time = None
+            lot.save(update_fields=["start_time", "end_time"])
+
+    elif action == "break":
+        # ต้องเคย START และยังไม่ END
+        if not lot.start_time:
+            return JsonResponse({"ok": False, "error": "ยังไม่ได้กด START"}, status=400)
+        if lot.end_time:
+            return JsonResponse({"ok": False, "error": "งานนี้จบไปแล้ว"}, status=400)
+
+        # ต้องไม่มี BREAK ค้างอยู่
+        open_break = lot.downtime_logs.filter(end_time__isnull=True).first()
+        if open_break:
+            return JsonResponse({"ok": False, "error": "มี BREAK ค้างอยู่แล้ว"}, status=400)
+
+        DowntimeLog.objects.create(
+            lot=lot,
+            start_time=now,
+            reason=payload.get("reason") or "",
+        )
+
+    elif action == "resume":
+        open_break = lot.downtime_logs.filter(end_time__isnull=True).first()
+        if not open_break:
+            return JsonResponse({"ok": False, "error": "ไม่พบ BREAK ที่ค้างอยู่"}, status=400)
+
+        open_break.end_time = now
+        open_break.save(update_fields=["end_time"])
+
+    elif action == "end":
+        if not lot.start_time:
+            return JsonResponse({"ok": False, "error": "ยังไม่ได้กด START"}, status=400)
+
+        lot.end_time = now
+        lot.save(update_fields=["end_time"])
+
+        # ถ้ามี BREAK ค้างอยู่ให้ปิดด้วยเวลาเดียวกัน
+        open_break = lot.downtime_logs.filter(end_time__isnull=True).first()
+        if open_break:
+            open_break.end_time = now
+            open_break.save(update_fields=["end_time"])
+
+    elif action == "set_mode":
+        # บันทึกโหมดการทำงานของ LOT (setup / production)
+        mode = (payload.get("mode") or "").strip().lower()
+        if mode not in (Lot.OEE_MODE_SETUP, Lot.OEE_MODE_PRODUCTION):
+            return JsonResponse({"ok": False, "error": "invalid mode"}, status=400)
+        lot.operation_mode = mode
+        lot.save(update_fields=["operation_mode"])
+
+    # โหลดค่าล่าสุดจาก DB แล้วส่งกลับ
+    lot.refresh_from_db()
+
+    return JsonResponse({
+        "ok": True,
+        "lot": lot_status_payload(lot),
+        "time": lot_time_payload(lot),
+        "actions": lot_actions_payload(lot),
+    })
+
+@login_required
+def index(request):
+    return render(request, "production/index.html")
+
+
+@login_required
+def home_menu(request):
+    """หน้าเมนูหลัก (เอาไว้ให้ url name='home_menu' ใช้)"""
+    return render(request, "production/index.html")
+
+# ---------- Helper สำหรับคำนวณเวลาทับซ้อนรายวัน (OEE Daily) ----------
+
+def _overlap_seconds(start_a, end_a, start_b, end_b):
+    """
+    คืนค่า "วินาทีที่ทับซ้อนกัน" ระหว่างช่วง (start_a, end_a) กับ (start_b, end_b)
+    ถ้าไม่ทับซ้อนเลยจะคืน 0
+    """
+    if not start_a or not end_a or not start_b or not end_b:
+        return 0
+
+    start = max(start_a, start_b)
+    end = min(end_a, end_b)
+    if end <= start:
+        return 0
+
+    return int((end - start).total_seconds())
+
+
+def _lot_daily_oee(lot, day_start, day_end):
+    """
+    คำนวณ OEE (เฉพาะส่วนเวลา) ของ LOT หนึ่งภายในช่วง [day_start, day_end)
+
+    คืนค่าเป็น dict:
+    {
+        "total_seconds": ...,
+        "downtime_seconds": ...,
+        "runtime_seconds": ...,
+        "availability": ... (float, %),
+    }
+    """
+    # ----- Total time (ช่วงทำงานของ LOT วันนี้) -----
+    if not lot.start_time:
+        total_seconds = 0
+    else:
+        lot_start = lot.start_time
+        lot_end = lot.end_time or timezone.now()
+        total_seconds = _overlap_seconds(lot_start, lot_end, day_start, day_end)
+
+    # ----- Downtime (ช่วง BREAK ที่ทับกับวันนี้) -----
+    downtime_seconds = 0
+    if total_seconds > 0:
+        for log in lot.downtime_logs.all():
+            log_start = log.start_time
+            log_end = log.end_time or timezone.now()
+            downtime_seconds += _overlap_seconds(log_start, log_end, day_start, day_end)
+
+        # กัน downtime เกิน total
+        downtime_seconds = min(downtime_seconds, total_seconds)
+
+    # ----- Runtime = Total - Downtime -----
+    runtime_seconds = max(0, total_seconds - downtime_seconds)
+
+    if total_seconds > 0:
+        availability = round(runtime_seconds * 100.0 / total_seconds, 1)
+    else:
+        availability = 0.0
+
+    return {
+        "total_seconds": total_seconds,
+        "downtime_seconds": downtime_seconds,
+        "runtime_seconds": runtime_seconds,
+        "availability": availability,
+    }
+
+
+def _format_hms(sec):
+    """แปลงวินาทีเป็น string HH:MM:SS"""
+    s = max(0, int(sec or 0))
+    h = s // 3600
+    m = (s % 3600) // 60
+    r = s % 60
+    return f"{h:02d}:{m:02d}:{r:02d}"
+
+@login_required
+def oee_daily_report(request):
+    """
+    Daily OEE รายวัน 00:00–23:59:
+    แสดงว่าในวันนั้นมี LOT ไหนบ้างที่มีเวลาทำงาน
+    พร้อม Total / Downtime / Runtime / A% แยกตาม LOT
+    """
+    # 1) อ่านพารามิเตอร์วันที่ (default = วันนี้)
+    date_str = request.GET.get("date", "")
+    today = timezone.localdate()
+
+    try:
+        if date_str:
+            report_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        else:
+            report_date = today
+    except ValueError:
+        report_date = today
+
+    # 2) สร้างช่วงเวลา 00:00–24:00 ของวันนั้น (timezone aware)
+    day_start = timezone.make_aware(datetime.combine(report_date, time.min))
+    day_end = day_start + timedelta(days=1)
+
+    # 3) filter LOT ที่มีส่วนเกี่ยวข้องกับวันนั้น
+    #    เงื่อนไข: start_time < day_end และ (end_time >= day_start หรือ end_time is null)
+    lots_qs = Lot.objects.filter(
+        start_time__lt=day_end
+    ).filter(
+        Q(end_time__gte=day_start) | Q(end_time__isnull=True)
+    ).select_related() \
+     .prefetch_related("downtime_logs") \
+     .order_by("machine_no", "lot_no")
+
+    # (option) filter เพิ่มตาม machine / department ถ้าต้องการ
+    machine_no = (request.GET.get("machine_no") or "").strip()
+    if machine_no:
+        lots_qs = lots_qs.filter(machine_no__iexact=machine_no)
+
+    dept = request.GET.get("department", "").strip()
+    if dept:
+        lots_qs = lots_qs.filter(department__icontains=dept)
+
+    # 4) คำนวณราย LOT
+    rows = []
+    total_total_sec = 0
+    total_runtime_sec = 0
+
+    for lot in lots_qs:
+        oee = _lot_daily_oee(lot, day_start, day_end)
+
+        # ถ้าไม่มีเวลาวันนี้เลย ก็ข้ามได้ (กัน LOT ที่แค่มาเกยวันเฉย ๆ)
+        if oee["total_seconds"] <= 0 and oee["downtime_seconds"] <= 0:
+            continue
+
+        total_total_sec += oee["total_seconds"]
+        total_runtime_sec += oee["runtime_seconds"]
+
+        rows.append({
+            "lot_no": lot.lot_no,
+            "part_no": lot.part_no,
+            "customer": lot.customer,
+            "machine_no": lot.machine_no,
+            "department": lot.department,
+            "total_hms": _format_hms(oee["total_seconds"]),
+            "downtime_hms": _format_hms(oee["downtime_seconds"]),
+            "runtime_hms": _format_hms(oee["runtime_seconds"]),
+            "availability": oee["availability"],
+        })
+
+    # 5) summary รวมทั้งวัน (ทุก LOT)
+    grand = {
+        "total_hms": _format_hms(total_total_sec),
+        "runtime_hms": _format_hms(total_runtime_sec),
+        "availability": (
+            round(total_runtime_sec * 100.0 / total_total_sec, 1)
+            if total_total_sec > 0 else 0.0
+        ),
+    }
+
+    context = {
+        "report_date": report_date,
+        "date_str": report_date.strftime("%Y-%m-%d"),
+        "rows": rows,
+        "grand": grand,
+        "selected_machine": machine_no,
+        "selected_department": dept,
+    }
+    return render(request, "production/oee_daily_report.html", context)
+
+@login_required
+def oee_daily_view(request):
+    """
+    หน้า OEE Daily:
+    สรุปในหนึ่งวัน (00:00–23:59) ว่ามี LOT ไหนบ้างที่มีการเดินเครื่อง
+    พร้อมเวลารวม / Downtime / Runtime เป็นวินาทีและแสดงแบบ H:M:S
+    """
+    # ---------- เลือกวันที่ ----------
+    date_str = request.GET.get("date", "")
+    if date_str:
+        try:
+            target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            target_date = timezone.localdate()
+    else:
+        target_date = timezone.localdate()
+
+    # ช่วงเวลาของวันนั้น (00:00:00 - 23:59:59.999999)
+    day_start = timezone.make_aware(datetime.combine(target_date, time.min))
+    day_end   = timezone.make_aware(datetime.combine(target_date, time.max))
+
+    # ---------- helper สำหรับตัดช่วงเวลาให้เหลือเท่าที่ทับกับวันนั้น ----------
+    def clip_seconds(start, end):
+        """
+        รับช่วงเวลา (start, end) แล้วคำนวณวินาทีที่ทับกับ [day_start, day_end]
+        """
+        if start is None:
+            return 0
+        if end is None:
+            end = timezone.now()
+
+        # ถ้าไม่ทับกันเลย
+        if end <= day_start or start >= day_end:
+            return 0
+
+        s = max(start, day_start)
+        e = min(end, day_end)
+        diff = (e - s).total_seconds()
+        return max(0, int(diff))
+
+    def fmt_hms(sec):
+        sec = int(sec or 0)
+        h = sec // 3600
+        m = (sec % 3600) // 60
+        s = sec % 60
+        return f"{h:02d}:{m:02d}:{s:02d}"
+
+    # ---------- เลือก LOT ที่เกี่ยวข้องกับวันนั้น ----------
+    # เงื่อนไขง่าย ๆ: LOT ที่ start ก่อน day_end และ end หลัง day_start (หรือยังไม่ end)
+    lots_qs = (
+        Lot.objects.filter(
+            Q(start_time__lte=day_end),
+            Q(end_time__gte=day_start) | Q(end_time__isnull=True),
+        )
+        .distinct()
+        .order_by("machine_no", "lot_no")
+    )
+
+    rows = []
+
+    for lot in lots_qs:
+        if not lot.start_time:
+            continue
+
+        # เวลารวมของ LOT ในวันนั้น
+        total_sec = clip_seconds(lot.start_time, lot.end_time)
+
+        # เวลาหยุด (Downtime) ของ LOT ในวันนั้น (รวมทุก log)
+        downtime_sec = 0
+        for log in lot.downtime_logs.all():
+            downtime_sec += clip_seconds(log.start_time, log.end_time)
+
+        runtime_sec = max(0, total_sec - downtime_sec)
+
+        availability = 0.0
+        if total_sec > 0:
+            availability = round(runtime_sec * 100.0 / total_sec, 1)
+
+        rows.append(
+            {
+                "lot": lot,
+                "lot_no": lot.lot_no,
+                "machine_no": lot.machine_no,
+                "customer": lot.customer,
+                "total_sec": total_sec,
+                "downtime_sec": downtime_sec,
+                "runtime_sec": runtime_sec,
+                "total_display": fmt_hms(total_sec),
+                "downtime_display": fmt_hms(downtime_sec),
+                "runtime_display": fmt_hms(runtime_sec),
+                "availability": availability,
+            }
+        )
+
+    context = {
+        "date": target_date,
+        "rows": rows,
+    }
+    return render(request, "production/oee_daily.html", context)

@@ -15,12 +15,51 @@
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
+    {# ============ OEE OPERATOR (อยู่ใบแรกสุด) ============ #}
+    <a href="{% url 'oee_operator' %}" class="menu-card group">
+      <div class="icon-box bg-indigo-100 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white">
+        <span class="material-symbols-outlined text-3xl">schedule</span>
+      </div>
+      <div class="flex-1">
+        <h3 class="text-base font-bold text-gray-900 group-hover:text-indigo-700 transition-colors">
+          OEE Operator
+        </h3>
+        <p class="text-xs text-gray-500 mt-0.5">
+          ใช้กด Start / Break / Resume / End สำหรับแต่ละเครื่อง
+        </p>
+      </div>
+      <div class="arrow-icon text-gray-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all">
+        <span class="material-symbols-outlined text-xl">arrow_forward_ios</span>
+      </div>
+    </a>
+
+    {# ============ OEE DAILY (รายงานรายวัน) ============ #}
+    <a href="{% url 'oee_daily' %}" class="menu-card group">
+      <div class="icon-box bg-sky-100 text-sky-600 group-hover:bg-sky-600 group-hover:text-white">
+        <span class="material-symbols-outlined text-3xl">today</span>
+      </div>
+      <div class="flex-1">
+        <h3 class="text-base font-bold text-gray-900 group-hover:text-sky-700 transition-colors">
+          OEE Daily
+        </h3>
+        <p class="text-xs text-gray-500 mt-0.5">
+          สรุปเวลาการเดินเครื่อง / หยุดเครื่องของแต่ละ LOT ในแต่ละวัน
+        </p>
+      </div>
+      <div class="arrow-icon text-gray-300 group-hover:text-sky-500 group-hover:translate-x-1 transition-all">
+        <span class="material-symbols-outlined text-xl">arrow_forward_ios</span>
+      </div>
+    </a>
+
+    {# ============ Dashboard ============ #}
     <a href="{% url 'department_select' %}" class="menu-card group">
       <div class="icon-box bg-purple-100 text-purple-600 group-hover:bg-purple-600 group-hover:text-white">
         <span class="material-symbols-outlined text-3xl">dashboard</span>
       </div>
       <div class="flex-1">
-        <h3 class="text-base font-bold text-gray-900 group-hover:text-purple-700 transition-colors">Dashboard</h3>
+        <h3 class="text-base font-bold text-gray-900 group-hover:text-purple-700 transition-colors">
+          Dashboard
+        </h3>
         <p class="text-xs text-gray-500 mt-0.5">ดูความคืบหน้าการผลิต (Graph/Stats)</p>
       </div>
       <div class="arrow-icon text-gray-300 group-hover:text-purple-500 group-hover:translate-x-1 transition-all">
@@ -28,12 +67,15 @@
       </div>
     </a>
 
+    {# ============ Scan Barcode ============ #}
     <a href="{% url 'scan' %}" class="menu-card group">
       <div class="icon-box bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white">
         <span class="material-symbols-outlined text-3xl">qr_code_scanner</span>
       </div>
       <div class="flex-1">
-        <h3 class="text-base font-bold text-gray-900 group-hover:text-blue-700 transition-colors">Scan Barcode</h3>
+        <h3 class="text-base font-bold text-gray-900 group-hover:text-blue-700 transition-colors">
+          Scan Barcode
+        </h3>
         <p class="text-xs text-gray-500 mt-0.5">บันทึกจำนวนผลิตหน้างาน</p>
       </div>
       <div class="arrow-icon text-gray-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all">
@@ -41,12 +83,15 @@
       </div>
     </a>
 
+    {# ============ QR Code Export ============ #}
     <a href="{% url 'qr_export' %}" class="menu-card group">
       <div class="icon-box bg-emerald-100 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white">
         <span class="material-symbols-outlined text-3xl">print</span>
       </div>
       <div class="flex-1">
-        <h3 class="text-base font-bold text-gray-900 group-hover:text-emerald-700 transition-colors">QR Code Export</h3>
+        <h3 class="text-base font-bold text-gray-900 group-hover:text-emerald-700 transition-colors">
+          QR Code Export
+        </h3>
         <p class="text-xs text-gray-500 mt-0.5">พิมพ์ QR Code สำหรับ Lot No.</p>
       </div>
       <div class="arrow-icon text-gray-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all">
@@ -54,12 +99,15 @@
       </div>
     </a>
 
+    {# ============ Data Collect ============ #}
     <a href="{% url 'data_collect' %}" class="menu-card group">
       <div class="icon-box bg-amber-100 text-amber-600 group-hover:bg-amber-600 group-hover:text-white">
         <span class="material-symbols-outlined text-3xl">table_view</span>
       </div>
       <div class="flex-1">
-        <h3 class="text-base font-bold text-gray-900 group-hover:text-amber-700 transition-colors">Data Collect</h3>
+        <h3 class="text-base font-bold text-gray-900 group-hover:text-amber-700 transition-colors">
+          Data Collect
+        </h3>
         <p class="text-xs text-gray-500 mt-0.5">ดูข้อมูลดิบ / Google Sheet</p>
       </div>
       <div class="arrow-icon text-gray-300 group-hover:text-amber-500 group-hover:translate-x-1 transition-all">
@@ -67,13 +115,16 @@
       </div>
     </a>
 
+    {# ============ User Control (Admin Only) ============ #}
     {% if user.is_staff or user.is_superuser %}
     <a href="{% url 'user_control' %}" class="menu-card group md:col-span-2 md:w-2/3 md:mx-auto">
       <div class="icon-box bg-rose-100 text-rose-600 group-hover:bg-rose-600 group-hover:text-white">
         <span class="material-symbols-outlined text-3xl">manage_accounts</span>
       </div>
       <div class="flex-1">
-        <h3 class="text-base font-bold text-gray-900 group-hover:text-rose-700 transition-colors">User Control</h3>
+        <h3 class="text-base font-bold text-gray-900 group-hover:text-rose-700 transition-colors">
+          User Control
+        </h3>
         <p class="text-xs text-gray-500 mt-0.5">จัดการสิทธิ์ผู้ใช้งาน (Admin Only)</p>
       </div>
       <div class="arrow-icon text-gray-300 group-hover:text-rose-500 group-hover:translate-x-1 transition-all">

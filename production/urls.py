@@ -30,6 +30,11 @@ urlpatterns = [
     # Machine detail
     path("dashboard/machine/<str:machine_no>/",views.machine_detail,name="machine_detail",
     ),
+    
+    path("home/", views.home_menu, name="home_menu"),
+    path("operator/", views.oee_operator, name="oee_operator"),  
+    path("api/oee/status/", views.oee_get_status, name="oee_get_status"),
+    path("api/oee/action/", views.oee_do_action, name="oee_do_action"),
 
     # อื่น ๆ
     path("scan/", views.scan, name="scan"),
@@ -41,6 +46,8 @@ urlpatterns = [
     path("dashboard/machine/<str:machine_no>/mini-chart/",views.machine_mini_chart,name="machine_mini_chart",),
     path("dashboard/machine/<str:machine_no>/chart-data/", views.machine_chart_data, name="machine_chart_data"),
     path("api/machine/<str:machine_no>/scan_logs_today/",views.machine_scan_logs_today,name="machine_scan_logs_today",),
+    path("oee/daily/", views.oee_daily_report, name="oee_daily_report"),
+    path("oee/daily/", views.oee_daily_view, name="oee_daily"),
 
     # import Excel
     path("import-excel/", views.import_excel, name="import_excel"),

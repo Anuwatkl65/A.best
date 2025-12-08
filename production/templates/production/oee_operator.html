@@ -1,0 +1,460 @@
+{% extends "production/base.html" %}
+{% load humanize %}
+
+{% block title %}Operator Panel · OEE Stopwatch{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-6 space-y-6">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-2">
+    <div>
+      <h1 class="text-2xl font-extrabold text-gray-900">
+        Operator Panel
+      </h1>
+      <p class="text-xs text-gray-500">
+        ใช้สำหรับกด <span class="font-semibold">START / BREAK / CONTINUE / END</span> ของแต่ละ LOT
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <a href="{% url 'home_menu' %}"
+         class="inline-flex items-center px-3 py-1.5 rounded-full text-xs border border-gray-300 bg-white hover:bg-gray-50">
+        <span class="material-symbols-outlined text-sm mr-1">arrow_back</span>
+        กลับเมนูหลัก
+      </a>
+    </div>
+  </div>
+
+  <!-- LOT Search -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 space-y-3">
+    <h2 class="text-sm font-semibold text-gray-700">เลือก LOT สำหรับจับเวลา</h2>
+    <div class="flex gap-2">
+      <input id="lotInput" type="text"
+             class="flex-1 rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/70"
+             placeholder="ใส่เลข LOT เช่น 25W0203004">
+      <button id="btnLoadLot"
+              class="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700">
+        โหลดข้อมูล LOT
+      </button>
+    </div>
+    <p class="text-[11px] text-gray-500">
+      ขั้นตอนการใช้งาน: ใส่เลข LOT → กดโหลดข้อมูล → จากนั้นจึงกดปุ่ม <span class="font-semibold">START / BREAK / CONTINUE / END</span> ด้านล่าง
+    </p>
+  </div>
+
+  <!-- Lot Panel (ซ่อนจนกว่าจะโหลด LOT) -->
+  <div id="lotPanel" class="space-y-4 hidden">
+
+    <!-- Lot detail + Mode selector -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div class="space-y-1">
+        <div class="text-[11px] uppercase tracking-wide text-gray-400">LOT</div>
+        <div id="lotNoLabel" class="text-lg font-semibold text-gray-900">-</div>
+        <div id="lotInfoLine" class="text-xs text-gray-600">
+          Part: <span id="lotPartLabel">-</span> ·
+          Customer: <span id="lotCustomerLabel">-</span> ·
+          Machine: <span id="lotMachineLabel">-</span>
+        </div>
+        <div class="flex items-center gap-2 mt-1">
+          <span id="lotStatusBadge"
+                class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700">
+            waiting
+          </span>
+          <span class="text-[11px] text-gray-500">
+            A%: <span id="availabilityLabel">0.0</span>%
+          </span>
+        </div>
+      </div>
+
+      <!-- Mode selector -->
+      <div class="space-y-1">
+        <div class="text-[11px] uppercase tracking-wide text-gray-400">โหมดการทำงาน</div>
+        <div class="flex items-center gap-2">
+          <select id="modeSelect"
+                  class="border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/70">
+            <option value="setup">Setup (ตั้งเครื่อง)</option>
+            <option value="production">Production (ผลิตจริง)</option>
+          </select>
+          <button id="btnSaveMode"
+                  class="px-3 py-2 rounded-xl text-[11px] font-semibold text-white bg-gray-800 hover:bg-gray-900">
+            บันทึกโหมด
+          </button>
+        </div>
+        <p class="text-[11px] text-gray-500">
+          ระบบจะบันทึกว่าในช่วงเวลานี้ LOT อยู่ในโหมด Setup หรือ Production (ใช้สรุปผลภายหลัง)
+        </p>
+      </div>
+    </div>
+
+    <!-- Timers -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <!-- Total -->
+      <div class="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-center">
+        <div class="text-[11px] uppercase tracking-wide text-gray-500">Total Time</div>
+        <div id="totalClock" class="font-mono text-2xl font-semibold mt-1 text-gray-900">
+          00:00:00
+        </div>
+        <div class="text-[11px] text-gray-500 mt-1">
+          ( <span id="totalMinutesLabel">0</span> นาที )
+        </div>
+      </div>
+
+      <!-- Downtime -->
+      <div class="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-center">
+        <div class="text-[11px] uppercase tracking-wide text-gray-500">Downtime</div>
+        <div id="downtimeClock" class="font-mono text-2xl font-semibold mt-1 text-gray-900">
+          00:00:00
+        </div>
+        <div class="text-[11px] text-gray-500 mt-1">
+          ( <span id="downtimeMinutesLabel">0</span> นาที )
+        </div>
+      </div>
+
+      <!-- Runtime -->
+      <div class="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-center">
+        <div class="text-[11px] uppercase tracking-wide text-gray-500">Runtime</div>
+        <div id="runtimeClock" class="font-mono text-2xl font-semibold mt-1 text-gray-900">
+          00:00:00
+        </div>
+        <div class="text-[11px] text-gray-500 mt-1">
+          ( <span id="runtimeMinutesLabel">0</span> นาที )
+        </div>
+      </div>
+    </div>
+
+    <!-- Control Buttons -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col items-center gap-4">
+      <div class="flex flex-col md:flex-row gap-4 justify-center">
+        <button id="btnStart"
+                class="w-40 h-16 rounded-full text-lg font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:hover:bg-emerald-600">
+          START
+        </button>
+
+        <button id="btnBreakToggle"
+                class="w-40 h-16 rounded-full text-lg font-semibold text-white bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:hover:bg-amber-500">
+          BREAK
+        </button>
+
+        <button id="btnEnd"
+                class="w-40 h-16 rounded-full text-lg font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:hover:bg-red-600">
+          END
+        </button>
+      </div>
+
+      <div id="statusMessage" class="text-sm text-gray-600 text-center">
+        ยังไม่ได้โหลดข้อมูล LOT
+      </div>
+    </div>
+
+    <!-- Summary block -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+      <h3 class="text-sm font-semibold text-gray-700 mb-1">สรุปผลของ LOT นี้</h3>
+      <p class="text-xs text-gray-600">
+        LOT: <span id="summaryLotNo">-</span>,
+        Machine: <span id="summaryMachine">-</span>,
+        Total: <span id="summaryTotal">-</span>,
+        Downtime: <span id="summaryDowntime">-</span>,
+        Runtime: <span id="summaryRuntime">-</span>,
+        A%: <span id="summaryAvailability">-</span>%
+      </p>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+{{ block.super }}
+<script>
+(function () {
+  // ---------------- STATE ----------------
+  const state = {
+    lotNo: null,
+    hasOpenBreak: false,
+    isFinished: false,
+    totalSeconds: 0,
+    downtimeSeconds: 0,
+    runtimeSeconds: 0,
+    timerId: null,
+  };
+
+  function getCsrfToken() {
+    const m = document.cookie.match(/csrftoken=([^;]+)/);
+    return m ? m[1] : "";
+  }
+
+  function secondsToHMS(sec) {
+    const s = Math.max(0, Math.floor(sec || 0));
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const r = s % 60;
+    return (
+      String(h).padStart(2, "0") + ":" +
+      String(m).padStart(2, "0") + ":" +
+      String(r).padStart(2, "0")
+    );
+  }
+
+  // ---------------- DOM refs ----------------
+  const lotPanel    = document.getElementById("lotPanel");
+  const lotInput    = document.getElementById("lotInput");
+  const btnLoadLot  = document.getElementById("btnLoadLot");
+  const statusMsg   = document.getElementById("statusMessage");
+
+  const lotNoLabel      = document.getElementById("lotNoLabel");
+  const lotPartLabel    = document.getElementById("lotPartLabel");
+  const lotCustomerLabel= document.getElementById("lotCustomerLabel");
+  const lotMachineLabel = document.getElementById("lotMachineLabel");
+  const lotStatusBadge  = document.getElementById("lotStatusBadge");
+  const availabilityLabel = document.getElementById("availabilityLabel");
+
+  const totalClock   = document.getElementById("totalClock");
+  const downtimeClock= document.getElementById("downtimeClock");
+  const runtimeClock = document.getElementById("runtimeClock");
+  const totalMinutesLabel    = document.getElementById("totalMinutesLabel");
+  const downtimeMinutesLabel = document.getElementById("downtimeMinutesLabel");
+  const runtimeMinutesLabel  = document.getElementById("runtimeMinutesLabel");
+
+  const btnStart       = document.getElementById("btnStart");
+  const btnBreakToggle = document.getElementById("btnBreakToggle");
+  const btnEnd         = document.getElementById("btnEnd");
+
+  const modeSelect  = document.getElementById("modeSelect");
+  const btnSaveMode = document.getElementById("btnSaveMode");
+
+  const summaryLotNo   = document.getElementById("summaryLotNo");
+  const summaryMachine = document.getElementById("summaryMachine");
+  const summaryTotal   = document.getElementById("summaryTotal");
+  const summaryDowntime= document.getElementById("summaryDowntime");
+  const summaryRuntime = document.getElementById("summaryRuntime");
+  const summaryAvailability = document.getElementById("summaryAvailability");
+
+  // ---------------- RENDER ----------------
+  function renderClocks() {
+    totalClock.textContent    = secondsToHMS(state.totalSeconds);
+    downtimeClock.textContent = secondsToHMS(state.downtimeSeconds);
+    runtimeClock.textContent  = secondsToHMS(state.runtimeSeconds);
+  }
+
+  function updateButtons(actions, hasOpenBreak) {
+    btnStart.disabled = !actions.can_start;
+    btnEnd.disabled   = !actions.can_end;
+
+    if (hasOpenBreak) {
+      btnBreakToggle.textContent = "CONTINUE";
+      btnBreakToggle.disabled = !actions.can_resume;
+      btnBreakToggle.dataset.mode = "resume";
+    } else {
+      btnBreakToggle.textContent = "BREAK";
+      btnBreakToggle.disabled = !actions.can_break;
+      btnBreakToggle.dataset.mode = "break";
+    }
+  }
+
+  function applyStatus(data) {
+    const lot = data.lot || {};
+    const time = data.time || {};
+    const actions = data.actions || {};
+
+    state.lotNo = lot.lot_no;
+    state.hasOpenBreak = !!lot.has_open_break;
+    state.isFinished = lot.status === "finished";
+
+    // ----- ใช้ seconds จาก backend ถ้ามี ไม่งั้น fallback เป็น minutes -----
+    state.totalSeconds    = (time.total_seconds    ?? ((time.total_minutes || 0)    * 60));
+    state.downtimeSeconds = (time.downtime_seconds ?? ((time.downtime_minutes || 0) * 60));
+    state.runtimeSeconds  = (time.runtime_seconds  ?? ((time.runtime_minutes || 0)  * 60));
+
+    // แสดง panel
+    lotPanel.classList.remove("hidden");
+
+    // ข้อมูล LOT
+    lotNoLabel.textContent       = lot.lot_no || "-";
+    lotPartLabel.textContent     = lot.part_no || "-";
+    lotCustomerLabel.textContent = lot.customer || "-";
+    lotMachineLabel.textContent  = lot.machine_no || "-";
+
+    lotStatusBadge.textContent = lot.status || "waiting";
+    availabilityLabel.textContent = (time.availability_percent || 0).toFixed(1);
+
+    // set mode select ถ้ามีค่า
+    if (lot.operation_mode) {
+      modeSelect.value = lot.operation_mode;
+    }
+
+    // label นาทีด้านล่าง (ถ้า backend ไม่ส่ง minutes มาก็แปลงจาก seconds)
+    const totalMin    = time.total_minutes    ?? Math.floor(state.totalSeconds / 60);
+    const downMin     = time.downtime_minutes ?? Math.floor(state.downtimeSeconds / 60);
+    const runMin      = time.runtime_minutes  ?? Math.floor(state.runtimeSeconds / 60);
+
+    totalMinutesLabel.textContent    = totalMin;
+    downtimeMinutesLabel.textContent = downMin;
+    runtimeMinutesLabel.textContent  = runMin;
+
+    // summary
+    summaryLotNo.textContent   = lot.lot_no || "-";
+    summaryMachine.textContent = lot.machine_no || "-";
+    summaryTotal.textContent   = time.display_total_time || "-";
+    summaryDowntime.textContent= time.display_downtime || "-";
+    summaryRuntime.textContent = time.display_runtime || "-";
+    summaryAvailability.textContent = (time.availability_percent || 0).toFixed(1);
+
+    // ปุ่ม
+    updateButtons(actions, lot.has_open_break);
+
+    // นาฬิกา
+    renderClocks();
+
+    // จัดการ timer
+    if (state.timerId) {
+      clearInterval(state.timerId);
+      state.timerId = null;
+    }
+    if (!state.isFinished && lot.start_time) {
+      state.timerId = setInterval(tickTimers, 1000);
+    }
+  }
+
+  function tickTimers() {
+    if (state.isFinished) {
+      if (state.timerId) {
+        clearInterval(state.timerId);
+        state.timerId = null;
+      }
+      return;
+    }
+    // ถ้า lot start แล้วเท่านั้นถึงจะเดิน
+    if (state.totalSeconds >= 0) {
+      state.totalSeconds += 1;
+      if (state.hasOpenBreak) {
+        state.downtimeSeconds += 1;
+      }
+      state.runtimeSeconds = state.totalSeconds - state.downtimeSeconds;
+      renderClocks();
+    }
+  }
+
+  // ---------------- API ----------------
+  async function fetchStatus(lotNo) {
+    const res = await fetch(
+      `/api/oee/status/?lot_no=${encodeURIComponent(lotNo)}`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) {
+      throw new Error("โหลดสถานะไม่สำเร็จ");
+    }
+    return await res.json();
+  }
+
+  async function sendAction(action, extra) {
+    if (!state.lotNo) {
+      throw new Error("ยังไม่ได้โหลด LOT");
+    }
+    const payload = Object.assign(
+      { lot_no: state.lotNo, action: action },
+      extra || {}
+    );
+
+    const res = await fetch("/api/oee/action/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": getCsrfToken(),
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error("เรียก API ไม่สำเร็จ: " + txt);
+    }
+
+    const data = await res.json();
+    if (!data.ok) {
+      throw new Error(data.error || "เกิดข้อผิดพลาดจาก backend");
+    }
+    applyStatus(data);
+  }
+
+  // ---------------- Event handlers ----------------
+  if (btnLoadLot) {
+    btnLoadLot.addEventListener("click", async () => {
+      const lotNo = (lotInput.value || "").trim();
+      if (!lotNo) {
+        statusMsg.textContent = "กรุณาใส่เลข LOT ก่อน";
+        return;
+      }
+      statusMsg.textContent = "กำลังโหลดข้อมูล LOT...";
+      try {
+        const data = await fetchStatus(lotNo);
+        if (!data.ok) {
+          throw new Error(data.error || "โหลดไม่สำเร็จ");
+        }
+        applyStatus(data);
+        statusMsg.textContent = "โหลดข้อมูล LOT สำเร็จ";
+      } catch (err) {
+        console.error(err);
+        statusMsg.textContent = err.message || "โหลดข้อมูลไม่สำเร็จ";
+      }
+    });
+  }
+
+  if (btnStart) {
+    btnStart.addEventListener("click", async () => {
+      statusMsg.textContent = "กำลังส่งคำสั่ง START...";
+      try {
+        await sendAction("start");
+        statusMsg.textContent = "บันทึกคำสั่ง START สำเร็จ";
+      } catch (err) {
+        console.error(err);
+        statusMsg.textContent = err.message || "เกิดข้อผิดพลาดระหว่าง START";
+      }
+    });
+  }
+
+  if (btnBreakToggle) {
+    btnBreakToggle.addEventListener("click", async () => {
+      const mode = btnBreakToggle.dataset.mode || "break"; // break / resume
+      statusMsg.textContent =
+        "กำลังส่งคำสั่ง " + mode.toUpperCase() + "...";
+      try {
+        await sendAction(mode);
+        statusMsg.textContent =
+          "บันทึกคำสั่ง " + mode.toUpperCase() + " สำเร็จ";
+      } catch (err) {
+        console.error(err);
+        statusMsg.textContent =
+          err.message || "เกิดข้อผิดพลาดระหว่าง " + mode.toUpperCase();
+      }
+    });
+  }
+
+  if (btnEnd) {
+    btnEnd.addEventListener("click", async () => {
+      statusMsg.textContent = "กำลังส่งคำสั่ง END...";
+      try {
+        await sendAction("end");
+        statusMsg.textContent = "บันทึกคำสั่ง END สำเร็จ (งานจบแล้ว)";
+      } catch (err) {
+        console.error(err);
+        statusMsg.textContent = err.message || "เกิดข้อผิดพลาดระหว่าง END";
+      }
+    });
+  }
+
+  if (btnSaveMode) {
+    btnSaveMode.addEventListener("click", async () => {
+      const mode = modeSelect.value;
+      statusMsg.textContent = "กำลังบันทึกโหมด...";
+      try {
+        await sendAction("set_mode", { mode });
+        statusMsg.textContent = "บันทึกโหมดสำเร็จ";
+      } catch (err) {
+        console.error(err);
+        statusMsg.textContent = err.message || "บันทึกโหมดไม่สำเร็จ";
+      }
+    });
+  }
+})();
+</script>
+{% endblock %}

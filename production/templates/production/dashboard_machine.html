@@ -6,7 +6,6 @@
 {% block content %}
 <div class="max-w-6xl mx-auto px-4 py-6">
 
-  <!-- Breadcrumb -->
   <div class="flex items-center gap-2 text-sm mb-4 text-gray-500">
     <span class="material-symbols-outlined text-base">home</span>
     <a href="{% url 'home_menu' %}" class="text-purple-700 hover:underline">Home</a>
@@ -16,7 +15,6 @@
     <span class="text-gray-900 font-semibold">Machine View</span>
   </div>
 
-  <!-- Header -->
   <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
     <div>
       <h1 class="text-2xl font-extrabold text-gray-900">
@@ -27,18 +25,16 @@
       </p>
     </div>
 
-    <a
-      href="{% url 'view_select' %}?department={{ department }}"
-      class="inline-flex items-center gap-1 px-4 py-2 rounded-full bg-white border border-gray-200 text-sm text-gray-700 hover:bg-gray-50"
-    >
-      <span class="material-symbols-outlined text-base">arrow_back</span>
-      กลับไปเลือกมุมมอง
-    </a>
+  <a
+        href="{% url 'view_select' %}?department={{ department }}"
+        class="relative z-20 inline-flex items-center gap-1 px-4 py-2 rounded-full bg-white border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 hover:text-purple-700 hover:border-purple-300 transition-all cursor-pointer shadow-sm"
+      >
+        <span class="material-symbols-outlined text-base">arrow_back</span>
+        กลับไปเลือกมุมมอง
+      </a>
   </div>
 
-  <!-- Search + summary -->
   <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-    <!-- search -->
     <div class="w-full lg:max-w-xl">
       <label class="block text-xs font-semibold text-gray-500 mb-1">
         ค้นหาเครื่อง (เพิ่มทีละเครื่อง เช่น M525)
@@ -59,7 +55,6 @@
       </p>
     </div>
 
-    <!-- summary badges -->
     <div class="flex items-center gap-2 justify-start lg:justify-end">
       <div class="px-4 py-2 rounded-2xl bg-white border border-gray-100 text-xs text-gray-700 shadow-sm">
         <div class="text-[11px] text-gray-400">รวมเครื่อง</div>
@@ -88,7 +83,6 @@
     </div>
   </div>
 
-  <!-- Grid การ์ดเครื่อง -->
   <div id="machine-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
     {% if machines %}
       {% for m in machines %}
@@ -97,12 +91,11 @@
           href="{% url 'machine_detail' m.machine_no %}?department={{ department }}"
           class="block group"
         >
-              <div
-                class="machine-card js-machine-card bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all"
-                data-machine-no="{{ m.machine_no }}"
-                data-summary-url="{% url 'machine_chart_data' m.machine_no %}?department={{ department }}"
-              >
-            <!-- header ม่วง -->
+          <div
+            class="machine-card js-machine-card bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all"
+            data-machine-no="{{ m.machine_no }}"
+            data-summary-url="{% url 'machine_chart_api' m.machine_no %}?department={{ department }}"
+          >
             <div class="px-4 pt-3 pb-2 bg-gradient-to-r from-purple-500 to-purple-600 flex items-start justify-between">
               <div>
                 <div class="text-sm font-extrabold text-white tracking-wide">
@@ -123,14 +116,12 @@
               </span>
             </div>
 
-            <!-- chart zone -->
             <div class="px-4 py-3 bg-slate-50/60">
               <div class="h-20 w-full">
                 <canvas class="machine-mini-chart w-full h-full"></canvas>
               </div>
             </div>
 
-            <!-- footer numbers -->
             <div class="px-4 py-3 text-[11px] text-gray-700 border-t border-gray-100 bg-white">
               <div class="flex justify-between mb-1">
                 <div>
@@ -191,11 +182,178 @@
   </div>
 </div>
 
-<!-- ส่ง context ให้ app.js ใช้ -->
 <script>
   window.__DASHBOARD_CONTEXT__ = {
     department: "{{ department }}",
     view_type: "machine",
   };
+</script>
+
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  
+  // 1. ตัวแปรหลัก
+  const cards = document.querySelectorAll(".js-machine-card");
+  const elSumReady = document.getElementById("sumReadyMachines");
+  const elSumActive = document.getElementById("sumActiveMachines");
+  const elSumDone = document.getElementById("sumDoneMachines");
+  const searchInput = document.getElementById("machine-search");
+
+  // 2. Helper: สีสถานะ
+  function statusClass(status) {
+    const s = (status || "").toLowerCase();
+    if (s === "running" || s === "active") return "bg-amber-100 text-amber-700";
+    if (s === "finished" || s === "done") return "bg-indigo-100 text-indigo-700";
+    return "bg-emerald-100 text-emerald-700";
+  }
+
+  // 3. Helper: อัปเดตกราฟ Mini Chart
+  function updateCardChart(card, labels, daily) {
+    const canvas = card.querySelector("canvas");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+
+    // ถ้ามีกราฟเดิมอยู่ ให้ทำลายก่อน (เพื่อไม่ให้ซ้อนกัน)
+    if (canvas._chart) canvas._chart.destroy();
+
+    canvas._chart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: labels,
+        datasets: [{
+          data: daily,
+          backgroundColor: "rgba(129, 140, 248, 0.85)", // สีม่วงอ่อน
+          borderRadius: 2,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false, // ปิด animation เพื่อ performance ที่ดีขึ้นตอน refresh
+        plugins: { 
+            legend: { display: false },
+            tooltip: { enabled: true } // เปิด Tooltip ไว้ดูค่า
+        },
+        scales: { 
+            x: { display: false }, // ซ่อนแกน X
+            y: { display: false, beginAtZero: true } // ซ่อนแกน Y
+        },
+        layout: { padding: 0 }
+      }
+    });
+  }
+
+  // 4. Helper: อัปเดตตัวเลขสรุป (Ready/Running/Finished)
+  function updateStatusSummary() {
+    let ready = 0, active = 0, done = 0;
+
+    cards.forEach(card => {
+      // ดูสถานะจาก Text ใน Badge
+      const badge = card.querySelector(".js-status-badge");
+      const text = (badge?.textContent || "").trim().toLowerCase();
+
+      if (text === "ready") ready++;
+      else if (text === "running" || text === "active") active++;
+      else if (text === "finished" || text === "done") done++;
+    });
+
+    if (elSumReady) elSumReady.textContent = ready;
+    if (elSumActive) elSumActive.textContent = active;
+    if (elSumDone) elSumDone.textContent = done;
+  }
+
+  // 5. Core: ฟังก์ชัน Refresh การ์ดแต่ละใบ
+  async function refreshCard(card) {
+    // ดึง URL จาก data-summary-url ที่ฝังไว้ใน HTML
+    const url = card.dataset.summaryUrl;
+    if (!url) return;
+
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) return;
+
+      const data = await res.json();
+
+      // อัปเดตข้อความใน Element ต่างๆ
+      const setTxt = (selector, val) => {
+        const el = card.querySelector(selector);
+        if (el) el.textContent = val || "-";
+      };
+
+      setTxt(".js-lot-no", data.lot_no);
+      setTxt(".js-part-no", data.part_no);
+      setTxt(".js-customer", data.customer);
+      setTxt(".js-last-scan", data.last_scan_display);
+      
+      // ตัวเลขต้องใส่ comma
+      if (card.querySelector(".js-target")) 
+        card.querySelector(".js-target").textContent = data.target?.toLocaleString() || "0";
+      
+      if (card.querySelector(".js-produced")) 
+        card.querySelector(".js-produced").textContent = data.produced?.toLocaleString() || "0";
+
+      // อัปเดต Badge สีสถานะ
+      const badge = card.querySelector(".js-status-badge");
+      if (badge) {
+        const status = data.status || "Ready";
+        badge.textContent = status;
+        // Reset Class แล้วใส่ใหม่
+        badge.className = "js-status-badge inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold " + statusClass(status);
+      }
+
+      // อัปเดตกราฟ (ถ้ามีข้อมูล)
+      if (data.labels && data.labels.length > 0) {
+        updateCardChart(card, data.labels, data.daily);
+      } else {
+        // ถ้าไม่มีข้อมูล ให้เคลียร์กราฟ (ถ้าจำเป็น) หรือปล่อยว่างไว้
+      }
+
+    } catch (err) {
+      console.error("Refresh Card Error:", err);
+    }
+  }
+
+  // 6. เริ่มต้นทำงาน (Init)
+  // 6.1 โหลดข้อมูลครั้งแรก
+  cards.forEach(card => refreshCard(card));
+  
+  // 6.2 รอสักนิดค่อยนับสรุป (เพื่อให้ข้อมูล API มาครบก่อน)
+  setTimeout(updateStatusSummary, 1000);
+
+  // 6.3 ตั้งเวลา Auto Refresh (ทุก 30 วินาที)
+  setInterval(() => {
+    cards.forEach(card => refreshCard(card));
+    setTimeout(updateStatusSummary, 500); // อัปเดตสรุปตามหลัง
+  }, 30000);
+
+  // 7. Search Function
+  if (searchInput) {
+    searchInput.addEventListener("input", function() {
+      const kw = this.value.trim().toLowerCase();
+      
+      cards.forEach(card => {
+        // หา Element wrapper ที่ครอบการ์ด (<a> หรือ <div>)
+        const wrapper = card.closest("a") || card.parentElement; 
+        const machineNo = (card.dataset.machineNo || "").toLowerCase();
+        
+        if (!kw || machineNo.includes(kw)) {
+          wrapper.style.display = ""; // แสดง
+        } else {
+          wrapper.style.display = "none"; // ซ่อน
+        }
+      });
+    });
+  }
+
+});
 </script>
 {% endblock %}
