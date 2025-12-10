@@ -28,8 +28,7 @@ urlpatterns = [
     path("lot/<str:lot_no>/", views.lot_detail, name="lot_detail"),
 
     # Machine detail
-    path("dashboard/machine/<str:machine_no>/",views.machine_detail,name="machine_detail",
-    ),
+    path("dashboard/machine/<str:machine_no>/",views.machine_detail,name="machine_detail",),
     
     path("home/", views.home_menu, name="home_menu"),
     path("operator/", views.oee_operator, name="oee_operator"),  

@@ -19,6 +19,9 @@ from django.utils import timezone
 from django.utils.timezone import now
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from datetime import datetime, time, timedelta
+from django.contrib.auth.models import User
+
 
 from openpyxl.utils import get_column_letter
 
@@ -391,7 +394,16 @@ def dashboard(request):
     if view_type == "machine":
         machine_map = {}
 
-        # 1) รวมข้อมูลจาก lot ก่อน (เหมือนเดิม)
+        # helper แปลงเวลาสุดท้ายของ lot เป็นตัวเลข timestamp ปลอดภัยเรื่อง aware/naive
+        def lot_last_activity(lot_dict):
+            dt = lot_dict.get("last_scan") or lot_dict.get("first_scan")
+            if dt is None:
+                return 0
+            if timezone.is_naive(dt):
+                dt = timezone.make_aware(dt, timezone.get_current_timezone())
+            return dt.timestamp()
+
+        # 1) รวมข้อมูลจาก lot ก่อน
         for lot in lots:
             m_no = lot["machine_no"] or "-"
             info = machine_map.setdefault(
@@ -411,24 +423,15 @@ def dashboard(request):
             finished_lot = [x for x in info["lots"] if x["progress"] >= 100]
 
             if running_lot:
-                active = sorted(
-                    running_lot,
-                    key=lambda x: x["last_scan"] or x["first_scan"] or datetime.min,
-                )[-1]
+                active = max(running_lot, key=lot_last_activity)
                 info["active_lot"] = active
                 info["status"] = "Running"
             elif finished_lot:
-                active = sorted(
-                    finished_lot,
-                    key=lambda x: x["last_scan"] or x["first_scan"] or datetime.min,
-                )[-1]
+                active = max(finished_lot, key=lot_last_activity)
                 info["active_lot"] = active
                 info["status"] = "Finished"
             elif info["lots"]:
-                active = sorted(
-                    info["lots"],
-                    key=lambda x: x["last_scan"] or x["first_scan"] or datetime.min,
-                )[-1]
+                active = max(info["lots"], key=lot_last_activity)
                 info["active_lot"] = active
                 info["status"] = "Ready"
             else:
@@ -740,6 +743,7 @@ def lot_detail(request, lot_no):
             date_to = datetime.strptime(scan_to, "%Y-%m-%d").date()
         except ValueError:
             date_to = None
+            
 
     if date_from:
         scans_for_chart = scans_for_chart.filter(scanned_at__date__gte=date_from)

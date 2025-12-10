@@ -63,7 +63,7 @@ class Lot(models.Model):
     machine_no = models.CharField(max_length=100, blank=True, null=True)
     type = models.CharField(max_length=50, blank=True, null=True)
 
-    # ---------- โหมดการทำงาน (Setup / Production) ----------
+    # ---------- โหมดการทำงานหลัก (Setup / Production) ----------
     OEE_MODE_SETUP = "setup"
     OEE_MODE_PRODUCTION = "production"
 
@@ -79,6 +79,26 @@ class Lot(models.Model):
         verbose_name="โหมดการทำงานปัจจุบัน (Setup/Production)",
     )
 
+    # ---------- โหมดที่พนักงานเลือกตอนเดินเครื่อง (เช่น Auto / Manual / Trial) ----------
+    RUN_MODE_AUTO = "auto"
+    RUN_MODE_MANUAL = "manual"
+    RUN_MODE_TRIAL = "trial"
+
+    RUN_MODE_CHOICES = [
+        (RUN_MODE_AUTO, "Auto"),
+        (RUN_MODE_MANUAL, "Manual"),
+        (RUN_MODE_TRIAL, "Trial"),
+    ]
+
+    run_mode = models.CharField(
+        max_length=20,
+        choices=RUN_MODE_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name="โหมดเดินเครื่องล่าสุด (Auto/Manual/Trial)",
+        help_text="เก็บโหมดที่เลือกจากหน้า Operator ตอนกด Start / Continue",
+    )
+
     # ---------- เวลา Scan จากระบบ ----------
     first_scan = models.DateTimeField(null=True, blank=True)
     last_scan = models.DateTimeField(null=True, blank=True)
@@ -91,7 +111,6 @@ class Lot(models.Model):
         return self.lot_no
 
     # ------------------- Computed Fields (Production) -------------------
-
     @property
     def produced(self):
         """ยอดผลิตรวมทั้งหมด (sum qty ของทุก scan)"""
@@ -126,8 +145,6 @@ class Lot(models.Model):
         return "running"
 
     # ------------------- Computed Fields (OEE / Time Tracking) -------------------
-    # ใช้ "วินาที" เป็นฐาน แล้วค่อยแปลงเป็นนาทีทีหลัง
-
     @property
     def total_time_seconds(self):
         """เวลารวมทั้งหมด (วินาที): ตั้งแต่กด Start จนถึง End (หรือปัจจุบัน)"""
