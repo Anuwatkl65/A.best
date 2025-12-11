@@ -1,3 +1,5 @@
+# The above code defines Django models for managing departments, user profiles, machines, lots, scan
+# records, and downtime logs with various properties and methods for tracking production data.
 # production/models.py
 
 from django.db import models
@@ -220,6 +222,9 @@ class ScanRecord(models.Model):
     machine_no = models.CharField(max_length=50, null=True, blank=True)
     qty = models.IntegerField(default=0)
     scanned_at = models.DateTimeField(default=now)
+
+    # --- เพิ่มบรรทัดนี้ครับ ---
+    sticker_unique_id = models.CharField(max_length=50, blank=True, null=True, help_text="เก็บเลข Unique ID จาก QR Code ป้องกันซ้ำ")
 
     def __str__(self):
         return f"{self.lot.lot_no} +{self.qty} @ {self.machine_no}"

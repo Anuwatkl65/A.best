@@ -1,113 +1,184 @@
-{% extends "production/base.html" %}
+{% extends 'production/base.html' %}
+
 {% block title %}QR Code Export{% endblock %}
+
 {% block content %}
-<div class="max-w-4xl mx-auto px-4 py-8">
-  
-  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-    <h2 class="text-2xl font-bold text-gray-800">QR Code Export</h2>
-    <a href="{% url 'home_menu' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-600 hover:bg-purple-50 hover:text-purple-700 transition-all shadow-sm">
-      <span class="material-symbols-outlined text-[20px]">arrow_back</span>
-      กลับหน้าหลัก
-    </a>
-  </div>
-
-  <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 space-y-6">
-
-    <!-- แถวกรอก Lot + ปุ่มสร้าง QR -->
-    <div class="flex flex-col md:flex-row gap-3 items-start md:items-center">
-      <div class="flex-grow w-full md:w-auto">
-        <label class="block text-xs text-gray-500 mb-1 ml-1">ระบุ Lot No.</label>
-
-        <!-- กล่อง input + ปุ่มเคลียร์ -->
-        <div class="relative">
-          <input
-            id="qr-lot-no-input"
-            list="qr-lot-no-list"
-            placeholder="พิมพ์หรือเลือก Lot No."
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg pr-10
-                   focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-          />
-          <datalist id="qr-lot-no-list"></datalist>
-
-          <!-- ปุ่มเคลียร์ช่อง Lot -->
-          <button
-            type="button"
-            data-clear-target="qr-lot-no-input"
-            class="absolute right-2 top-1/2 -translate-y-1/2
-                   w-6 h-6 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center
-                   hover:bg-purple-100 hover:text-purple-700"
-          >
-            <span class="material-symbols-outlined text-[18px]">close</span>
-          </button>
-        </div>
-      </div>
-
-      <button id="export-qr-btn" class="mt-auto px-6 py-2.5 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors shadow-sm flex items-center gap-2">
-        <span class="material-symbols-outlined text-lg">qr_code_2</span>
-        สร้าง QR
-      </button>
-    </div>
+<div class="max-w-4xl mx-auto py-8 px-4 print:p-0 print:max-w-none">
     
-    <div class="flex justify-center p-8 bg-gray-50 rounded-lg border border-dashed border-gray-200">
-      <canvas id="qr-canvas"></canvas>
+    <div class="print:hidden">
+        <div class="mb-6 flex items-center justify-between">
+            <h1 class="text-2xl font-bold text-gray-800">QR Code Export</h1>
+            <a href="{% url 'home_menu' %}" class="bg-white border px-4 py-2 rounded-full text-sm hover:bg-gray-50 text-gray-600">
+                <span class="material-symbols-outlined align-middle text-sm mr-1">arrow_back</span> กลับหน้าหลัก
+            </a>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
+            <div class="mb-6">
+                <label class="block text-gray-700 font-bold mb-2">1. เลือกแผนก (Department)</label>
+                <select id="dept_select" class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-purple-400 outline-none">
+                    <option value="">-- กรุณาเลือกแผนก --</option>
+                    {% for dept in departments %}
+                        <option value="{{ dept.name }}">{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-gray-700 font-bold mb-2">2. ระบุ Lot No.</label>
+                <select id="lot_select" disabled class="w-full border border-gray-300 p-3 rounded-lg bg-gray-100 text-gray-400 focus:ring-2 focus:ring-purple-400 outline-none">
+                    <option value="">-- รอการเลือกแผนก --</option>
+                </select>
+                <div id="lot_info" class="hidden mt-2 p-3 bg-purple-50 rounded-lg text-sm text-purple-700">
+                    <strong>Customer:</strong> <span id="info_cust">-</span> | 
+                    <strong>Qty:</strong> <span id="info_qty">-</span>
+                </div>
+            </div>
+
+            <form method="post" id="qr_form" class="hidden border-t pt-6 mt-6">
+                {% csrf_token %}
+                <input type="hidden" name="lot_no" id="input_lot_no" value="{{ old_data.lot_no }}">
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-bold mb-1 text-gray-600">Qty Per Box</label>
+                        <input type="number" name="qty_per_box" id="input_qty" 
+                               value="{{ old_data.qty_per_box|default:'100' }}" class="w-full border p-2 rounded focus:ring-2 focus:ring-purple-400 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-1 text-gray-600">จำนวนดวง (Stickers)</label>
+                        <input type="number" name="sticker_count" 
+                               value="{{ old_data.sticker_count|default:'10' }}" class="w-full border p-2 rounded focus:ring-2 focus:ring-purple-400 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-1 text-gray-600">เริ่มที่เลข (Seq)</label>
+                        <input type="number" name="start_seq" 
+                               value="{{ old_data.start_seq|default:'1' }}" class="w-full border p-2 rounded focus:ring-2 focus:ring-purple-400 outline-none">
+                        <span class="text-xs text-gray-400">เช่น 1 จะเริ่มที่ 001</span>
+                    </div>
+                </div>
+
+                <div class="flex gap-3">
+                    <button type="submit" class="flex-1 bg-purple-600 text-white font-bold py-3 rounded-lg hover:bg-purple-700 transition shadow flex justify-center items-center">
+                        <span class="material-symbols-outlined mr-2">qr_code_2</span> สร้าง QR Code
+                    </button>
+                    {% if qr_list %}
+                    <button type="button" onclick="window.print()" class="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-lg hover:bg-emerald-700 transition shadow flex justify-center items-center">
+                        <span class="material-symbols-outlined mr-2">print</span> สั่งพิมพ์
+                    </button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
     </div>
-  </div>
+
+    {% if qr_list %}
+    <div id="printable-area" class="grid grid-cols-3 gap-4 print:grid-cols-3 print:gap-4 print:w-full">
+        {% for item in qr_list %}
+        <div class="border border-gray-300 p-4 flex flex-col items-center justify-center text-center rounded break-inside-avoid shadow-sm print:shadow-none print:border-black">
+            <img src="data:image/png;base64,{{ item.image }}" alt="QR Code" class="w-32 h-32 mb-2 object-contain">
+            
+            <div class="text-sm font-bold font-mono">{{ item.string }}</div>
+            <div class="text-xs text-gray-500 mt-1">{{ item.human_readable }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
 
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 <script>
-  const SCRIPT_URL = "/api/";
-  const input = document.getElementById('qr-lot-no-input');
-  const list  = document.getElementById('qr-lot-no-list');
+    const deptSelect = document.getElementById('dept_select');
+    const lotSelect = document.getElementById('lot_select');
+    const qrForm = document.getElementById('qr_form');
+    const inputLotNo = document.getElementById('input_lot_no');
+    const inputQty = document.getElementById('input_qty');
+    const lotInfo = document.getElementById('lot_info');
 
-  async function loadLots() {
-    try {
-      const res = await fetch(SCRIPT_URL, {
-        method: 'POST',
-        body: new URLSearchParams({ action: 'getData' })
-      });
-      const j = await res.json();
-      const rows = (j.data && j.data.dashboardData) || j.data || [];
-      list.innerHTML = '';
-      rows.forEach(x => {
-        const opt = document.createElement('option');
-        opt.value = x.lot_no || x.lotNo;
-        if (opt.value) list.appendChild(opt);
-      });
-    } catch (e) {
-      console.error(e);
-    }
-  }
+    // โหลด Lot เมื่อเลือกแผนก
+    deptSelect.addEventListener('change', async function() {
+        const dept = this.value;
+        
+        lotSelect.innerHTML = '<option value="">กำลังโหลด...</option>';
+        lotSelect.disabled = true;
+        lotSelect.classList.add('bg-gray-100', 'text-gray-400');
+        
+        // ซ่อน Form ไว้ก่อนถ้าเปลี่ยนแผนก
+        qrForm.classList.add('hidden');
+        lotInfo.classList.add('hidden');
 
-  document.getElementById('export-qr-btn').onclick = () => {
-    const lot = input.value.trim();
-    if (!lot) {
-      alert('กรุณาใส่ Lot No.');
-      return;
-    }
-    new QRious({
-      element: document.getElementById('qr-canvas'),
-      value: lot,
-      size: 200,
-      level: 'H'
+        if (!dept) {
+            lotSelect.innerHTML = '<option value="">-- รอการเลือกแผนก --</option>';
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('action', 'get_lots_by_dept');
+            formData.append('department', dept);
+
+            const res = await fetch('/api/', { method: 'POST', body: formData });
+            const json = await res.json();
+
+            if (json.status === 'success') {
+                lotSelect.innerHTML = '<option value="">-- คลิกเลือก Lot No. --</option>';
+                json.data.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.lot_no;
+                    opt.textContent = `${item.lot_no} : ${item.customer || '-'}`;
+                    // เก็บค่าใส่ dataset
+                    opt.dataset.qty = item.production_quantity;
+                    opt.dataset.cust = item.customer;
+                    lotSelect.appendChild(opt);
+                });
+                lotSelect.disabled = false;
+                lotSelect.classList.remove('bg-gray-100', 'text-gray-400');
+            }
+        } catch (err) {
+            console.error(err);
+            lotSelect.innerHTML = '<option value="">โหลดผิดพลาด</option>';
+        }
     });
-  };
 
-  // ปุ่มเคลียร์ช่อง Lot (ไม่รีหน้า)
-  document.addEventListener('click', function (e) {
-    const btn = e.target.closest('button[data-clear-target]');
-    if (!btn) return;
+    // แสดง Form เมื่อเลือก Lot
+    lotSelect.addEventListener('change', function() {
+        if (this.value) {
+            const opt = this.options[this.selectedIndex];
+            
+            // Update UI Info
+            document.getElementById('info_cust').textContent = opt.dataset.cust || '-';
+            document.getElementById('info_qty').textContent = parseInt(opt.dataset.qty||0).toLocaleString();
+            lotInfo.classList.remove('hidden');
 
-    e.preventDefault();
+            // Set Values to Form
+            inputLotNo.value = this.value;
+            // (Optional) ถ้าอยากให้ default qty ตามยอดผลิต ก็เปิดบรรทัดล่างนี้
+            // inputQty.value = opt.dataset.qty; 
 
-    const targetId = btn.getAttribute('data-clear-target');
-    const targetInput = document.getElementById(targetId);
-    if (targetInput) {
-      targetInput.value = '';
-    }
-  });
-
-  loadLots();
+            qrForm.classList.remove('hidden');
+        } else {
+            qrForm.classList.add('hidden');
+            lotInfo.classList.add('hidden');
+        }
+    });
 </script>
+
+<style>
+    @media print {
+        /* ซ่อนทุกอย่างที่เป็น UI ของเว็บ */
+        body * { visibility: hidden; }
+        
+        /* แสดงเฉพาะโซน QR Code */
+        #printable-area, #printable-area * { visibility: visible; }
+        
+        /* จัดหน้ากระดาษ */
+        #printable-area {
+            position: absolute;
+            left: 0; top: 0; width: 100%;
+        }
+        .break-inside-avoid {
+            page-break-inside: avoid;
+        }
+    }
+</style>
 {% endblock %}
